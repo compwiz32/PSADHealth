@@ -7,7 +7,7 @@ $PDCEmulator = (get-addomaincontroller -Discover -Service PrimaryDC).name
 $ExternalTimeSvr = '0.pool.ntp.org'
 $MaxTimeDrift = 15
 
-Import-Module Active-Directory
+Import-Module ActiveDirectory
 
 #get external time and extract just the time from from the result
 $ExternalTime = (w32tm /stripchart /dataonly /computer:$Server /samples:1)[-1].split("[")[0]

@@ -6,7 +6,7 @@ $MailTo = "michael_kanakos@bigfirm.biz"
 $DClist = (get-adgroupmember "Domain Controllers").name
 $ExternalDNSServers = '208.67.222.222 ','208.67.220.220'
 
-Import-Module Active-Directory
+Import-Module ActiveDirectory
 
 ForEach ($server in $DClist){
 

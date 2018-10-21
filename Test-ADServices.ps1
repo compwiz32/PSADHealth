@@ -10,7 +10,7 @@ $collection = @('ADWS','DHCPServer','DNS','DFS','DFSR','Eventlog','EventSystem',
     'LanManWorkstation','NetLogon','NTDS','RPCSS','SAMSS','W32Time')
 
 
-Import-Module Active-Directory
+Import-Module ActiveDirectory
 
 
 ForEach ($server in $DClist){ 

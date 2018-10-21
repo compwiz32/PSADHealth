@@ -5,7 +5,7 @@ $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
 $MailTo = "michael_kanakos@bigfirm.biz"
 $DClist = (get-adgroupmember "Domain Controllers").name
 
-Import-Module Active-Directory
+Import-Module ActiveDirectory
 
 $DClist = (get-adgroupmember "Domain Controllers").name
 
