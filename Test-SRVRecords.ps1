@@ -14,7 +14,7 @@ $KDC_SRV_Record = '_kerberos._tcp.dc'
 $PDC_SRV_Record = '_ldap._tcp.pdc'
 $Results = @{}
 
-Import-Module Active-Directory
+Import-Module ActiveDirectory
 
 $Results.DC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName
  -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)

@@ -7,7 +7,7 @@ $DClist = (get-adgroupmember "Domain Controllers").name
 $PDCEmulator = (get-addomaincontroller -Discover -Service PrimaryDC).name
 $MaxTimeDrift = 45
 
-Import-Module Active-Directory
+Import-Module ActiveDirectory
 
 ForEach ($server in $DClist){
     $Remotetime = ([WMI]'').ConvertToDateTime((gwmi win32_operatingsystem
