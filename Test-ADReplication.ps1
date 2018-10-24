@@ -12,7 +12,7 @@ $DClist = (get-adgroupmember "Domain Controllers").name
 Foreach ($server in $DClist) {
     $Result = (Get-ADReplicationFailure -Target $server).failurecount
     
-        If ($result -ne $null -and $result -gt 0){
+        If ($result -ne $null -or $result -gt 0){
         
         $Subject = "Replication Failure on $Server"
         $EmailBody = @"
