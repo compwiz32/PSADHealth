@@ -22,8 +22,8 @@ function Test-ADObjectReplication {
    
     .NOTES
     Author: Greg Onstot
-    Version: 0.1
-    Version Date: 10/26/2018
+    Version: 0.2
+    Version Date: 10/29/2018
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
 
@@ -39,6 +39,7 @@ function Test-ADObjectReplication {
     17016 - Test Object Created
     17017 - Test Object Deleted
     17018 - 1 minute Sleep
+    17019 - Posible old object detected
     #>
 
     Begin {
@@ -48,15 +49,22 @@ function Test-ADObjectReplication {
             New-EventLog –LogName Application –Source “PSMonitor”
         }
         $continue = $true
+        $existingObj = $null
         $DCs = (Get-ADDomainController -Filter *).Name 
         $SourceSystem = (Get-ADDomain).pdcemulator
         [int]$MaxCycles = 50        
     }
 
     Process {
-        if (Test-NetConnection $SourceSystem -Port 445) {
+        if (Test-NetConnection $SourceSystem -Port 445 -InformationLevel Quiet) {
             Write-Verbose 'PDCE is online'
             $tempObjectPath = (Get-ADDomain).computersContainer
+            $existingObj = Get-ADComputer -filter 'name -like "ADRT-*"' -prop * -SearchBase "$tempObjectPath" |Select-Object -ExpandProperty Name
+            If ($existingObj) {
+                Write-Verbose "Warning - Cleanup of a old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj  - Please review, and cleanup if required."
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17019 -EntryType Warning -message "Warning - Cleanup of old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj.  Please review, and cleanup if required." -category "17019"
+            }
+
             $site = (Get-ADDomainController $SourceSystem).site
             $startDateTime = Get-Date
             [string]$tempObjectName = "ADRT-" + (Get-Date -f yyyyMMddHHmmss)
@@ -64,12 +72,12 @@ function Test-ADObjectReplication {
             New-ADComputer -Name "$tempObjectName" -samAccountName "$tempObjectName" -Path "$tempObjectPath" -Server $SourceSystem -Enabled $False
             
             Write-Verbose "Object created for tracking - $tempObjectName in $site"
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17006 -EntryType Information -message "Test object - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17006"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17016 -EntryType Information -message "Test object - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17016"
             $i = 0
         }
         else {
             Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17010"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17010"
             break
         }
 
@@ -84,7 +92,7 @@ function Test-ADObjectReplication {
         
             Foreach ($dc in $DCs) {
                 $site = (Get-ADDomainController $dc).site
-                if (Test-NetConnection $dc -Port 445) {
+                if (Test-NetConnection $dc -Port 445 -InformationLevel Quiet) {
                     Write-Verbose "Online - $dc"
                     $connectionResult = "SUCCESS"
                 }
@@ -97,13 +105,13 @@ function Test-ADObjectReplication {
                 # If The Connection To The DC Is Successful
                 If ($connectionResult -eq "SUCCESS") {
                     Try {	
-                        $Milliseconds = (Measure-Command {$Query = Get-ADComputer $tempObjectName -Server $dc | Select-Object Name}).TotalMilliseconds
-                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17013 -EntryType information -message "Test object Successfully replicated to - $dc in site - $site - in $Milliseconds ms. " -category "17013"
-                        write-Verbose "$($query.Name) - $($dc) - $site - $Milliseconds"
+                        $Milliseconds = (Measure-Command {$Query = Get-ADComputer $tempObjectName -Server $dc | select Name}).TotalMilliseconds
+                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17013 -EntryType information -message "SUCCESS! - Test object replicated to - $dc in site - $site - in $Milliseconds ms. " -category "17013"
+                        write-Verbose "SUCCESS! - Replicated -  $($query.Name) - $($dc) - $site - $Milliseconds"
                     }
                     Catch {
-                        write-Verbose "Does not exist on $dc in $site."
-                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17012 -EntryType information -message "Test object Successfully replicated to - $dc in site - $site. " -category "17012"
+                        write-Verbose "PENDING! - Test object $tempObjectName does not exist on $dc in $site."
+                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17012 -EntryType information -message "PENDING! - Test object pending replication to - $dc in site - $site. " -category "17012"
                         $replicated = $false
                     }    
                 }
@@ -111,7 +119,7 @@ function Test-ADObjectReplication {
                 # If The Connection To The DC Is Unsuccessful
                 If ($connectionResult -eq "FAILURE") {
                     Write-Verbose "     - Unable To Connect To DC/GC And Check For The Temp Object..."
-                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "Failed to connect to DC - $dc in site - $site" -category "17010"
+                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to DC - $dc in site - $site" -category "17010"
                 }
             }
 
@@ -122,7 +130,8 @@ function Test-ADObjectReplication {
             If ($i -gt $MaxCycles) {
                 $continue = $false
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "TIMEOUT! - Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
+                $domainname = (Get-ADDomain).dnsroot
                 $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate."
                 Send-Mail $Alert
             } 
