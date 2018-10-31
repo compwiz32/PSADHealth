@@ -16,7 +16,9 @@ function Test-ADInternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-
+    Version: 0.3
+    Version Date: 10/31/2018
+    
     Event Source 'PSMonitor' will be created
 
     EventID Definition:
@@ -29,14 +31,15 @@ function Test-ADInternalTimeSync {
 
     Begin {
         Import-Module activedirectory
+        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
-            New-EventLog –LogName Application –Source "PSMonitor"
+            New-EventLog -LogName Application -Source "PSMonitor"
         }#end if
         #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
         $DClist = (Get-ADDomainController -Filter *).name  # For ALL DCs
         $PDCEmulator = (Get-ADDomainController -Discover -Service PrimaryDC).name
-        $MaxTimeDrift = 45
+        $MaxTimeDrift = $ConfigFile.MaxIntTimeDrift
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17031 -EntryType Information -message "START of Internal Time Sync Test Cycle ." -category "17031"
     }#End Begin
 
@@ -74,18 +77,28 @@ function Send-Mail {
     
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
-    $domainname = (Get-ADDomain).dnsroot
-    $smtpServer = "<SMTPSERVER>.$Domainname"
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $msg.To.Add("<TargetUSER>@$domainname")
-    $msg.To.Add("<TargetDL>@$domainname")
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
+    }
     
     #Message:
-    $msg.From = "ADInternalTimeSync-$NBN@$Domainname"
-    $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domainname"
+    $msg.From = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domain"
     $msg.subject = "$NBN AD Internal Time Sync Alert!"
     $msg.body = @"
         Time of Event: $((get-date))`r`n $emailOutput

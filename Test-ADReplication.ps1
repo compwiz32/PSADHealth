@@ -16,6 +16,8 @@ function Test-ADReplication {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
+    Version: 0.3
+    Version Date: 10/31/2018
 
     Event Source 'PSMonitor' will be created
 
@@ -29,9 +31,10 @@ function Test-ADReplication {
 
     Begin {
         Import-Module activedirectory
+        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
-            New-EventLog –LogName Application –Source "PSMonitor"
+            New-EventLog -LogName Application -Source "PSMonitor"
         }
         #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
         $DClist = (Get-ADDomainController -Filter *).name  # For ALL DCs
@@ -52,16 +55,16 @@ function Test-ADReplication {
             $Partner = $Details.Partner
         
             If ($result -ne $null -and $Result -gt 0) {
-                $OutputDetails ="ServerName: `r`n  $name `r`n FailureCount: $errcount  `r`n `r`n    FirstFailureTime: `r`n $Fail  `r`n `r`n Error with Partner: `r`n $Partner  `r`n `r`n"
+                $OutputDetails = "ServerName: `r`n  $name `r`n FailureCount: $errcount  `r`n `r`n    FirstFailureTime: `r`n $Fail  `r`n `r`n Error with Partner: `r`n $Partner  `r`n `r`n"
                 Write-Verbose "Failure - $OutputDetails"
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Warning -message "FAILURE on $server  -  $OutputDetails ." -category "17020"
                 Send-Mail $OutputDetails
             } #End if
-         }#End Foreach
+        }#End Foreach
     }#End Process
 
     
-    End{
+    End {
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17023 -EntryType Information -message "END of Test Cycle ." -category "17023"
     }#End End
 }#End Function
@@ -75,18 +78,28 @@ function Send-Mail {
     
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
-    $domainname = (Get-ADDomain).dnsroot
-    $smtpServer = "<SMTPSERVER>.$Domainname"
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $msg.To.Add("<TargetUSER>@$domainname")
-    $msg.To.Add("<TargetDL>@$domainname")
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0) {
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails) {
+            Write-Verbose "email will be sent to $target"
+            $msg.To.Add("$target")
+        }
+    }
+    Else {
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17020"
+    }
     
     #Message:
-    $msg.From = "ADOBJECTREPL-$NBN@$Domainname"
-    $msg.ReplyTo = "ADOBJECTREPL-$NBN@$Domainname"
+    $msg.From = "ADOBJECTREPL-$NBN@$Domain"
+    $msg.ReplyTo = "ADOBJECTREPL-$NBN@$Domain"
     $msg.subject = "$NBN AD Replication Failure!"
     $msg.body = @"
         Time of Event: $((get-date))`r`n $OutputDetails
