@@ -16,7 +16,9 @@ function Test-ADExternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-
+    Version: 0.3
+    Version Date: 10/31/2018
+    
     Event Source 'PSMonitor' will be created
 
     EventID Definition:
@@ -29,14 +31,15 @@ function Test-ADExternalTimeSync {
 
     Begin {
         Import-Module activedirectory
+        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
-            New-EventLog –LogName Application –Source "PSMonitor"
+            New-EventLog -LogName Application -Source "PSMonitor"
         }#end if
         #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
         $PDCEmulator = (Get-ADDomainController -Discover -Service PrimaryDC).name
-        $ExternalTimeSvr = '<TIMESERVERNAME>'
-        $MaxTimeDrift = 15
+        $ExternalTimeSvr = $ConfigFile.ExternalTimeSvr
+        $MaxTimeDrift = $ConfigFile.MaxExtTimeDrift
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17041 -EntryType Information -message "START of External Time Sync Test Cycle ." -category "17041"
     }#End Begin
 
@@ -60,10 +63,10 @@ function Test-ADExternalTimeSync {
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17040 -EntryType Warning -message "FAILURE External time drift above maximum allowed on $emailOutput `r`n " -category "17040"
             Send-Mail $emailOutput
         }#end if
-   }#End Process
-   End{
-       Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17043 -EntryType Information -message "END of External Time Sync Test Cycle ." -category "17043"
-   }#End End
+    }#End Process
+    End {
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17043 -EntryType Information -message "END of External Time Sync Test Cycle ." -category "17043"
+    }#End End
     
 }#End Function
 
@@ -75,28 +78,24 @@ function Send-Mail {
     
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
-    $domainname = (Get-ADDomain).dnsroot
-    $smtpServer = "<SMTPSERVER>.$Domainname"
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $msg.To.Add("<TargetUSER>@$domainname")
-    $msg.To.Add("<TargetDL>@$domainname")
-    
-    #Message:
-    $msg.From = "ADExternalTimeSync-$NBN@$Domainname"
-    $msg.ReplyTo = "ADExternalTimeSync-$NBN@$Domainnname"
-    $msg.subject = "$NBN AD External Time Sync Alert!"
-    $msg.body = @"
-        Time of Event: $((get-date))`r`n $emailOutput
-"@
-
-    #Send it
-    $smtp.Send($msg)
-}
-
-Test-ADExternalTimeSync #-Verbose
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0) {
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails) {
+            Write-Verbose "email will be sent to $target"
+            $msg.To.Add("$target")
+        }
+    }
+    Else {
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17040 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17040"
+    }
     
     #Message:
     $msg.From = "ADExternalTimeSync-$NBN@$Domain"

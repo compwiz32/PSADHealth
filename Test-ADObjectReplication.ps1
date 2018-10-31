@@ -6,8 +6,8 @@ function Test-ADObjectReplication {
     Monitor AD Object Replication
     
     .DESCRIPTION
-    Each run of the script creates a unique test object (a disabled computer account) in the domain, and tracks it's replication to all other DCs in the domain.
-    By default it will query the DCs for about 60 minutes.  If after 50 loops the object hasn't repliated the test will terminate and create an alert.
+    Each run of the script creates a unique test object in the domain, and tracks it's replication to all other DCs in the domain.
+    By default it will query the DCs for about 60 minutes.  If after 60 loops the object hasn't repliated the test will terminate and create an alert.
 
     .EXAMPLE
     Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found, and/or when the scheduled task fails to run.
@@ -16,14 +16,14 @@ function Test-ADObjectReplication {
     $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
     Register-ScheduledJob -Name Test-ADObjectReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADObjectReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
 
+    
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
-    Test-ADObjectReplication -Verbose
    
     .NOTES
-    Author: Greg Onstot
-    Version: 0.2
-    Version Date: 10/29/2018
+    Author Greg Onstot
+    Version: 0.3
+    Version Date: 10/31/2018
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
 
@@ -43,16 +43,17 @@ function Test-ADObjectReplication {
     #>
 
     Begin {
-        #Import-Module activedirectory
+        Import-Module activedirectory
+        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
-            New-EventLog –LogName Application –Source "PSMonitor"
+            New-EventLog -LogName Application -Source "PSMonitor"
         }
         $continue = $true
         $existingObj = $null
         $DCs = (Get-ADDomainController -Filter *).Name 
         $SourceSystem = (Get-ADDomain).pdcemulator
-        [int]$MaxCycles = 50        
+        [int]$MaxCycles = $ConfigFile.MaxObjectReplCycles
     }
 
     Process {
@@ -60,7 +61,7 @@ function Test-ADObjectReplication {
             Write-Verbose 'PDCE is online'
             $tempObjectPath = (Get-ADDomain).computersContainer
             $existingObj = Get-ADComputer -filter 'name -like "ADRT-*"' -prop * -SearchBase "$tempObjectPath" |Select-Object -ExpandProperty Name
-            If ($existingObj) {
+            If ($existingObj){
                 Write-Verbose "Warning - Cleanup of a old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj  - Please review, and cleanup if required."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17019 -EntryType Warning -message "Warning - Cleanup of old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj.  Please review, and cleanup if required." -category "17019"
             }
@@ -166,18 +167,27 @@ function Send-Mail {
     
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
-    $domainname = (Get-ADDomain).dnsroot
-    $smtpServer = "<SMTPSERVER>.$Domainname"
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $msg.To.Add("<TargetUSER>@$domainname")
-    $msg.To.Add("<TargetDL>@$domainname")
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17010"
+    }
     
     #Message:
-    $msg.From = "ADOBJECTREPL-$NBN@$domainname"
-    $msg.ReplyTo = "ADOBJECTREPL-$NBN@$domainname"
+    $msg.From = "ADOBJECTREPL-$NBN@$Domain"
+    $msg.ReplyTo = "ADOBJECTREPL-$NBN@$Domain"
     $msg.subject = "$NBN AD Object Replication Failure!"
     $msg.body = $Alert
 

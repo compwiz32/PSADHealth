@@ -5,8 +5,7 @@ https://jorgequestforknowledge.wordpress.com/2014/02/17/testing-sysvol-replicati
 
 #>
 
-function Test-SysvolReplication
-{
+function Test-SysvolReplication {
     [CmdletBinding()]
     Param()
     <#
@@ -27,14 +26,13 @@ function Test-SysvolReplication
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
-    Test-SysvolReplication -Verbose
    
     .NOTES
-    Author: Greg Onstot
-    Version: 0.2
-    Version Date: 10/25/2018
-    
+    Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
+    Version: 0.3
+    Version Date: 10/31/2018
+    
     Event Source 'PSMonitor' will be created
 
     EventID Definition:
@@ -49,22 +47,21 @@ function Test-SysvolReplication
     17008 - 1 minute Sleep
     #>
 
-    Begin
-    {
-    
-        if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")){
+    Begin {
+        Import-Module activedirectory
+        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
+        if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
-            New-EventLog –LogName Application –Source “PSMonitor”
+            New-EventLog -LogName Application -Source "PSMonitor"
         }
         $continue = $true
         $domainname = (Get-ADDomain).dnsroot
         $DCList = (Get-ADDomainController -Filter *).name
         $SourceSystem = (Get-ADDomain).pdcemulator
-        [int]$MaxCycles = 50
+        [int]$MaxCycles = $ConfigFile.MaxSysvolReplCycles
     }
     
-    Process
-    {
+    Process {
         if (Test-NetConnection $SourceSystem -Port 445) {
             Write-Verbose 'PDCE is online'
             $TempObjectLocation = "\\$SourceSystem\SYSVOL\$domainname\Scripts"
@@ -138,8 +135,7 @@ function Test-SysvolReplication
         }	
     }
     
-    End
-    {
+    End {
         # Show The Start Time, The End Time And The Duration Of The Replication
         $endDateTime = Get-Date
         $duration = "{0:n2}" -f ($endDateTime.Subtract($startDateTime).TotalSeconds)
@@ -160,26 +156,34 @@ function Test-SysvolReplication
     }
 }
 
-function Send-Mail
-{
+function Send-Mail {
     Param($Alert)
     Write-Verbose "Sending Email"
     Write-Verbose "Output is --  $Alert"
     
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
-    $domainname = (Get-ADDomain).dnsroot
-    $smtpServer = "<SMTPSERVER>.$Domainname"
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $msg.To.Add("<TargetUSER>@$domainname")
-    $msg.To.Add("<TargetDL>@$domainname")
+    If ($emailCount -gt 0) {
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails) {
+            Write-Verbose "email will be sent to $target"
+            $msg.To.Add("$target")
+        }
+    }
+    Else {
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17000"
+    }
     
     #Message:
-    $msg.From = "ADSYSVOLREPL-$NBN@$domainname"
-    $msg.ReplyTo = "ADSYSVOLREPL-$NBN@$domainname"
+    $msg.From = "ADSYSVOLREPL-$NBN@$Domain"
+    $msg.ReplyTo = "ADSYSVOLREPL-$NBN@$Domain"
     $msg.subject = "$NBN SYSVOL Replication Failure!"
     $msg.body = $Alert
 
@@ -188,4 +192,4 @@ function Send-Mail
 }
 
 
-Test-SysvolReplication #-Verbose
+Test-SysvolReplication -Verbose
