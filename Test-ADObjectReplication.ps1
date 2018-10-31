@@ -46,7 +46,7 @@ function Test-ADObjectReplication {
         #Import-Module activedirectory
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
-            New-EventLog –LogName Application –Source “PSMonitor”
+            New-EventLog –LogName Application –Source "PSMonitor"
         }
         $continue = $true
         $existingObj = $null
