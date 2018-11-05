@@ -45,6 +45,7 @@ function Test-SysvolReplication {
     17006 - Test Object Created
     17007 - Test Object Deleted
     17008 - 1 minute Sleep
+    17009 - Alert Email Sent
     #>
 
     Begin {
@@ -142,7 +143,7 @@ function Test-SysvolReplication {
         $output = "`n  Start Time......: $(Get-Date $startDateTime -format "yyyy-MM-dd HH:mm:ss")"
         $output = $output + "`n  End Time........: $(Get-Date $endDateTime -format "yyyy-MM-dd HH:mm:ss")"
         $output = $output + "`n  Duration........: $duration Seconds"
-        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17004 -EntryType Information -message "Test cycle has Ended - $output" -category "17004"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17005 -EntryType Information -message "Test cycle has Ended - $output" -category "17005"
         
         Write-Verbose "`n  Start Time......: $(Get-Date $startDateTime -format "yyyy-MM-dd HH:mm:ss")"
         Write-Verbose "  End Time........: $(Get-Date $endDateTime -format "yyyy-MM-dd HH:mm:ss")"
@@ -159,6 +160,7 @@ function Test-SysvolReplication {
 function Send-Mail {
     Param($Alert)
     Write-Verbose "Sending Email"
+    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17009 -EntryType Information -message "ALERT Email Sent" -category "17009"
     Write-Verbose "Output is --  $Alert"
     
     #Mail Server Config
