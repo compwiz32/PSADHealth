@@ -16,8 +16,8 @@ function Test-ADReplication {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.3
-    Version Date: 10/31/2018
+    Version: 0.5
+    Version Date: 11/16/2018
 
     Event Source 'PSMonitor' will be created
 
@@ -32,6 +32,7 @@ function Test-ADReplication {
     Begin {
         Import-Module activedirectory
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
+        $SupportArticle = $ConfigFile.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -54,8 +55,8 @@ function Test-ADReplication {
             $Fail = $Details.FirstFailureTime
             $Partner = $Details.Partner
         
-            If ($result -ne $null -and $Result -gt 0) {
-                $OutputDetails = "ServerName: `r`n  $name `r`n FailureCount: $errcount  `r`n `r`n    FirstFailureTime: `r`n $Fail  `r`n `r`n Error with Partner: `r`n $Partner  `r`n `r`n"
+            If ($result -ne $null -and $Result -gt 1) {
+                $OutputDetails = "ServerName: `r`n  $name `r`n FailureCount: $errcount  `r`n `r`n    FirstFailureTime: `r`n $Fail  `r`n `r`n Error with Partner: `r`n $Partner  `r`n `r`n -  See the following support article $SupportArticle"
                 Write-Verbose "Failure - $OutputDetails"
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Warning -message "FAILURE on $server  -  $OutputDetails ." -category "17020"
                 Send-Mail $OutputDetails
@@ -98,11 +99,12 @@ function Send-Mail {
     }
     
     #Message:
-    $msg.From = "ADOBJECTREPL-$NBN@$Domain"
-    $msg.ReplyTo = "ADOBJECTREPL-$NBN@$Domain"
+    $msg.From = "ADOREPL-$NBN@$Domain"
+    $msg.ReplyTo = "ADREPL-$NBN@$Domain"
     $msg.subject = "$NBN AD Replication Failure!"
     $msg.body = @"
         Time of Event: $((get-date))`r`n $OutputDetails
+        See the following support article $SupportArticle
 "@
 
     #Send it
