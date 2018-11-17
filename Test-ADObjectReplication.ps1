@@ -10,20 +10,15 @@ function Test-ADObjectReplication {
     By default it will query the DCs for about 60 minutes.  If after 60 loops the object hasn't repliated the test will terminate and create an alert.
 
     .EXAMPLE
-    Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found, and/or when the scheduled task fails to run.
-    $cred = Get-Credential -Credential <Domain>\<ServiceAccount>
-    $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
-    $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
-    Register-ScheduledJob -Name Test-ADObjectReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADObjectReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+    Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found.
 
-    
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
    
     .NOTES
     Author Greg Onstot
-    Version: 0.3
-    Version Date: 10/31/2018
+    Version: 0.5
+    Version Date: 11/16/2018
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
 
@@ -44,7 +39,10 @@ function Test-ADObjectReplication {
 
     Begin {
         Import-Module activedirectory
+        $NBN = (Get-ADDomain).NetBIOSName
+        $Domain = (Get-ADDomain).DNSRoot
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
+        $SupportArticle = $ConfigFile.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -79,6 +77,8 @@ function Test-ADObjectReplication {
         else {
             Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17010"
+            $Alert = "In $domainname Failed to connect to PDCE - $dc in site - $site.  Test stopping!  See the following support article $SupportArticle"
+            Send-Mail $Alert
             break
         }
 
@@ -101,6 +101,8 @@ function Test-ADObjectReplication {
                     Write-Verbose "!!!!!OFFLINE - $dc !!!!!"
                     $connectionResult = "FAILURE"
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "Failed to connect to DC - $dc in site - $site" -category "17010"
+                    $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.  See the following support article $SupportArticle"
+                    Send-Mail $Alert
                 }
 
                 # If The Connection To The DC Is Successful
@@ -121,6 +123,8 @@ function Test-ADObjectReplication {
                 If ($connectionResult -eq "FAILURE") {
                     Write-Verbose "     - Unable To Connect To DC/GC And Check For The Temp Object..."
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to DC - $dc in site - $site" -category "17010"
+                    $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.   See the following support article $SupportArticle"
+                    Send-Mail $Alert
                 }
             }
 
@@ -133,7 +137,7 @@ function Test-ADObjectReplication {
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "TIMEOUT! - Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
                 $domainname = (Get-ADDomain).dnsroot
-                $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate."
+                $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate.  See the following support article $SupportArticle"
                 Send-Mail $Alert
             } 
         }
@@ -173,6 +177,7 @@ function Send-Mail {
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
     If ($emailCount -gt 0){
         $Emails = $ConfigFile.Email
         foreach ($target in $Emails){
@@ -183,6 +188,8 @@ function Send-Mail {
     Else{
         Write-Verbose "No email addresses defined"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17010"
+        $Alert = "In $domainname Failed to connect to DC - $dc in site - $site"
+        Send-Mail $Alert
     }
     
     #Message:

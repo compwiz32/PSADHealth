@@ -16,8 +16,8 @@ function Test-ADExternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.3
-    Version Date: 10/31/2018
+    Version: 0.5
+    Version Date: 11/16/2018
     
     Event Source 'PSMonitor' will be created
 
@@ -32,6 +32,7 @@ function Test-ADExternalTimeSync {
     Begin {
         Import-Module activedirectory
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
+        $SupportArticle = $ConfigFile.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -103,6 +104,7 @@ function Send-Mail {
     $msg.subject = "$NBN AD External Time Sync Alert!"
     $msg.body = @"
         Time of Event: $((get-date))`r`n $emailOutput
+        See the following support article $SupportArticle
 "@
 
     #Send it

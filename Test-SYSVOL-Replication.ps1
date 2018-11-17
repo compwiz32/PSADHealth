@@ -17,12 +17,7 @@ function Test-SysvolReplication {
     By default it will query the DCs for about 60 minutes.  If after 60 loops the file hasn't repliated the test will terminate and create an alert.
 
     .EXAMPLE
-    Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found, and/or when the scheduled task fails to run.
-    $cred = Get-Credential -Credential <Domain>\<ServiceAccount>
-    $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
-    $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
-    Register-ScheduledJob -Name Test-ADSYSVOLReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-SYSVOL-Replication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-
+    Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found.
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
@@ -30,8 +25,8 @@ function Test-SysvolReplication {
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
-    Version: 0.3
-    Version Date: 10/31/2018
+    Version: 0.5
+    Version Date: 11/16/2018
     
     Event Source 'PSMonitor' will be created
 
@@ -51,6 +46,7 @@ function Test-SysvolReplication {
     Begin {
         Import-Module activedirectory
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
+        $SupportArticle = $ConfigFile.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -130,7 +126,7 @@ function Test-SysvolReplication {
                 $continue = $false
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17004 -EntryType Warning -message "Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17004"
-                $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate."
+                $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate.  See the following support article $SupportArticle"
                 Send-Mail $Alert
             } 
         }	
@@ -171,6 +167,7 @@ function Send-Mail {
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
     If ($emailCount -gt 0) {
         $Emails = $ConfigFile.Email
         foreach ($target in $Emails) {
@@ -194,4 +191,4 @@ function Send-Mail {
 }
 
 
-Test-SysvolReplication -Verbose
+Test-SysvolReplication #-Verbose
