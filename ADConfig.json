@@ -6,6 +6,7 @@
     "MaxExtTimeDrift":"15",
     "ExternalTimeSvr":"<YOUR EXTERNAL-TIME-SERVER>",
     "MaxObjectReplCycles":"50",
-    "MaxSysvolReplCycles":"50"
+    "MaxSysvolReplCycles":"50",
+    "SupportArticle":"https://<YourServer/YourTroubleshootingArticles>"
   }
   
