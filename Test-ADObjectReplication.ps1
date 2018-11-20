@@ -17,8 +17,8 @@ function Test-ADObjectReplication {
    
     .NOTES
     Author Greg Onstot
-    Version: 0.5
-    Version Date: 11/16/2018
+    Version: 0.6
+    Version Date: 11/19/2018
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
 
@@ -48,6 +48,7 @@ function Test-ADObjectReplication {
             New-EventLog -LogName Application -Source "PSMonitor"
         }
         $continue = $true
+        $CurrentFailure = $false
         $existingObj = $null
         $DCs = (Get-ADDomainController -Filter *).Name 
         $SourceSystem = (Get-ADDomain).pdcemulator
@@ -78,6 +79,7 @@ function Test-ADObjectReplication {
             Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17010"
             $Alert = "In $domainname Failed to connect to PDCE - $dc in site - $site.  Test stopping!  See the following support article $SupportArticle"
+            $CurrentFailure = $true
             Send-Mail $Alert
             break
         }
@@ -102,6 +104,7 @@ function Test-ADObjectReplication {
                     $connectionResult = "FAILURE"
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "Failed to connect to DC - $dc in site - $site" -category "17010"
                     $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.  See the following support article $SupportArticle"
+                    $CurrentFailure = $true
                     Send-Mail $Alert
                 }
 
@@ -124,6 +127,7 @@ function Test-ADObjectReplication {
                     Write-Verbose "     - Unable To Connect To DC/GC And Check For The Temp Object..."
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to DC - $dc in site - $site" -category "17010"
                     $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.   See the following support article $SupportArticle"
+                    $CurrentFailure = $true
                     Send-Mail $Alert
                 }
             }
@@ -134,10 +138,19 @@ function Test-ADObjectReplication {
 
             If ($i -gt $MaxCycles) {
                 $continue = $false
+                #gather event history to see which DC did, and which did not, get the replication
+                $list = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17012") -OR ($_.InstanceID -Match "17013") -OR ($_.InstanceID -Match "17016")} 
+                $RelevantEvents = $list |Select InstanceID,Message |Out-String
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "TIMEOUT! - Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
                 $domainname = (Get-ADDomain).dnsroot
-                $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate.  See the following support article $SupportArticle"
+                $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  
+                Please see the following support article $SupportArticle to help investigate
+                
+                Recent history:
+                $RelevantEvents
+                "
+                $CurrentFailure = $true
                 Send-Mail $Alert
             } 
         }
@@ -161,6 +174,19 @@ function Test-ADObjectReplication {
         Remove-ADComputer $tempObjectName -Confirm:$False
         Write-Verbose "  AD Object [$tempObjectName] Has Been Deleted."
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17017 -EntryType Information -message "Test object - $tempObjectName  - has been deleted." -category "17017"
+
+        If (!$CurrentFailure){
+            Write-Verbose "No Issues found in this run"
+            $InError = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17010") -or ($_.InstanceID -Match "17014")} 
+            If ($InError) {
+                Write-Verbose "Previous Errors Seen"
+                #Previous run had an alert
+                #No errors foun during this test so send email that the previous error(s) have cleared
+                Send-AlertCleared
+                #Write-Output $InError
+            }#End if
+        }#End if
+
     }
 }
 
@@ -198,6 +224,44 @@ function Send-Mail {
     $msg.subject = "$NBN AD Object Replication Failure!"
     $msg.body = $Alert
 
+    #Send it
+    $smtp.Send($msg)
+}
+
+function Send-AlertCleared {
+    Param($InError)
+    Write-Verbose "Sending Email"
+    Write-Verbose "Output is --  $InError"
+    
+    #Mail Server Config
+    $NBN = (Get-ADDomain).NetBIOSName
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
+    $smtp = new-object Net.Mail.SmtpClient($smtpServer)
+    $msg = new-object Net.Mail.MailMessage
+
+    #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
+    }
+    #Message:
+    $msg.From = "ADOBJECTREPL-$NBN@$Domain"
+    $msg.ReplyTo = "ADOBJECTREPL-$NBN@$Domain"
+    $msg.subject = "$NBN AD Object Replication Failure - Alert Cleared!"
+    $msg.body = @"
+        The previous alert has now cleared.
+
+        Thanks.
+"@
     #Send it
     $smtp.Send($msg)
 }
