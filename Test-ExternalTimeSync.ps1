@@ -16,9 +16,9 @@ function Test-ADExternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.5
-    Version Date: 11/16/2018
-    
+    Version: 0.6
+    Version Date: 11/19/2018
+        
     Event Source 'PSMonitor' will be created
 
     EventID Definition:
@@ -63,10 +63,22 @@ function Test-ADExternalTimeSync {
             Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17040 -EntryType Warning -message "FAILURE External time drift above maximum allowed on $emailOutput `r`n " -category "17040"
             Send-Mail $emailOutput
+            [script]$CurrentFailure = $true
         }#end if
     }#End Process
     End {
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17043 -EntryType Information -message "END of External Time Sync Test Cycle ." -category "17043"
+        If (!$CurrentFailure){
+            Write-Verbose "No Issues found in this run"
+            $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | where {($_.InstanceID -Match "17040")} 
+            If ($InError) {
+                Write-Verbose "Previous Errors Seen"
+                #Previous run had an alert
+                #No errors foun during this test so send email that the previous error(s) have cleared
+                Send-AlertCleared
+                #Write-Output $InError
+            }#End if
+        }#End if
     }#End End
     
 }#End Function
@@ -107,6 +119,45 @@ function Send-Mail {
         See the following support article $SupportArticle
 "@
 
+    #Send it
+    $smtp.Send($msg)
+}
+
+
+function Send-AlertCleared {
+    Param($InError)
+    Write-Verbose "Sending Email"
+    Write-Verbose "Output is --  $InError"
+    
+    #Mail Server Config
+    $NBN = (Get-ADDomain).NetBIOSName
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
+    $smtp = new-object Net.Mail.SmtpClient($smtpServer)
+    $msg = new-object Net.Mail.MailMessage
+
+    #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
+    }
+    #Message:
+    $msg.From = "ADExternalTimeSync-$NBN@$Domain"
+    $msg.ReplyTo = "ADExternalTimeSync-$NBN@$Domain"
+    $msg.subject = "$NBN AD External Time Sync - Alert Cleared!"
+    $msg.body = @"
+        The previous alert has now cleared.
+
+        Thanks.
+"@
     #Send it
     $smtp.Send($msg)
 }

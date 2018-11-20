@@ -25,8 +25,8 @@ function Test-SysvolReplication {
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
-    Version: 0.5
-    Version Date: 11/16/2018
+    Version: 0.6
+    Version Date: 11/19/2018
     
     Event Source 'PSMonitor' will be created
 
@@ -52,6 +52,7 @@ function Test-SysvolReplication {
             New-EventLog -LogName Application -Source "PSMonitor"
         }
         $continue = $true
+        $CurrentFailure = $false
         $domainname = (Get-ADDomain).dnsroot
         $DCList = (Get-ADDomainController -Filter *).name
         $SourceSystem = (Get-ADDomain).pdcemulator
@@ -124,9 +125,19 @@ function Test-SysvolReplication {
         
             If ($i -gt $MaxCycles) {
                 $continue = $false
+                #gather event history to see which DC did, and which did not, get the replication
+                $list = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17002") -OR ($_.InstanceID -Match "17003") -OR ($_.InstanceID -Match "17006")} 
+                $RelevantEvents = $list |Select InstanceID,Message |Out-String
+                
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17004 -EntryType Warning -message "Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17004"
-                $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.  Please investigate.  See the following support article $SupportArticle"
+                $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.  
+                Please see the following support article $SupportArticle to help investigate
+                
+                Recent history:
+                $RelevantEvents
+                "
+                $CurrentFailure = $true
                 Send-Mail $Alert
             } 
         }	
@@ -150,7 +161,19 @@ function Test-SysvolReplication {
         Remove-Item "$TempObjectLocation\$tempObjectName" -Force
         Write-Verbose "  Temp Text File [$tempObjectName] Has Been Deleted On The Source System"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17007 -EntryType Information -message "Test object - $tempObjectName  - has been deleted." -category "17007"
-    }
+
+        If (!$CurrentFailure){
+            Write-Verbose "No Issues found in this run"
+            $InError = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17000") -or ($_.InstanceID -Match "17004")} 
+            If ($InError) {
+                Write-Verbose "Previous Errors Seen"
+                #Previous run had an alert
+                #No errors foun during this test so send email that the previous error(s) have cleared
+                Send-AlertCleared
+                #Write-Output $InError
+            }#End if
+        }#End if
+    }#End End
 }
 
 function Send-Mail {
@@ -186,6 +209,44 @@ function Send-Mail {
     $msg.subject = "$NBN SYSVOL Replication Failure!"
     $msg.body = $Alert
 
+    #Send it
+    $smtp.Send($msg)
+}
+
+function Send-AlertCleared {
+    Param($InError)
+    Write-Verbose "Sending Email"
+    Write-Verbose "Output is --  $InError"
+    
+    #Mail Server Config
+    $NBN = (Get-ADDomain).NetBIOSName
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
+    $smtp = new-object Net.Mail.SmtpClient($smtpServer)
+    $msg = new-object Net.Mail.MailMessage
+
+    #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
+    }
+    #Message:
+    $msg.From = "ADSYSVOLREPL-$NBN@$Domain"
+    $msg.ReplyTo = "ADSYSVOLREPL-$NBN@$Domain"
+    $msg.subject = "$NBN SYSVOL Replication Failure - Alert Cleared!"
+    $msg.body = @"
+        The previous alert has now cleared.
+
+        Thanks.
+"@
     #Send it
     $smtp.Send($msg)
 }
