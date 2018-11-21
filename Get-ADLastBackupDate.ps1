@@ -57,7 +57,7 @@ function Test-ADInternalTimeSync {
             Write-Verbose "Last Active Directory backup occurred on $LastBackup! $Result days is higher than the alert criteria of $MaxDaysSinceBackup day."
             $emailOutput = "Last Active Directory backup occurred on $LastBackup! $Result days is higher than the alert criteria of $MaxDaysSinceBackup day."
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17050 -EntryType Warning -message "ALERT - Backup not current.  $emailOutput" -category "17050"
-            [script]$CurrentFailure = $true
+            $global:CurrentFailure = $true
             Send-Mail $emailOutput
         }#End if
     }#End Process

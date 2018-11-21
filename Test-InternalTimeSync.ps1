@@ -61,7 +61,7 @@ function Test-ADInternalTimeSync {
                     $emailOutput = "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime `r`n "
                     Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Warning -message "FAILURE time drift above maximum allowed on $emailOutput `r`n " -category "17030"
-                    [script]$CurrentFailure = $true
+                    $global:CurrentFailure = $true
                     Send-Mail $emailOutput
                 }#end if
             }#End Foreach
@@ -160,4 +160,4 @@ function Send-AlertCleared {
     $smtp.Send($msg)
 }
 
-Test-ADInternalTimeSync -Verbose
+Test-ADInternalTimeSync #-Verbose
