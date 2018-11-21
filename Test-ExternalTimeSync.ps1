@@ -63,7 +63,7 @@ function Test-ADExternalTimeSync {
             Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17040 -EntryType Warning -message "FAILURE External time drift above maximum allowed on $emailOutput `r`n " -category "17040"
             Send-Mail $emailOutput
-            [script]$CurrentFailure = $true
+            $global:CurrentFailure = $true
         }#end if
     }#End Process
     End {

@@ -59,7 +59,7 @@ function Test-ADReplication {
                 $OutputDetails = "ServerName: `r`n  $name `r`n FailureCount: $errcount  `r`n `r`n    FirstFailureTime: `r`n $Fail  `r`n `r`n Error with Partner: `r`n $Partner  `r`n `r`n -  See the following support article $SupportArticle"
                 Write-Verbose "Failure - $OutputDetails"
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Warning -message "FAILURE on $server  -  $OutputDetails ." -category "17020"
-                [script]$CurrentFailure = $true
+                $global:CurrentFailure = $true
                 Send-Mail $OutputDetails
             } #End if
         }#End Foreach
