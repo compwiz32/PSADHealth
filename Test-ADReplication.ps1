@@ -71,7 +71,7 @@ function Test-ADReplication {
         If (!$CurrentFailure){
             Write-Verbose "No Issues found in this run"
             $InError = Get-EventLog application -After (Get-Date).AddHours(-1) | where {($_.InstanceID -Match "17020")} 
-            If ($InError) {
+            If ($InError.Count -gt 1) {
                 Write-Verbose "Previous Errors Seen"
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
