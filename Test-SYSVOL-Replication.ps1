@@ -25,8 +25,8 @@ function Test-SysvolReplication {
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
-    Version: 0.6
-    Version Date: 11/19/2018
+    Version: 0.6.1
+    Version Date: 12/04/2018
     
     Event Source 'PSMonitor' will be created
 
@@ -35,7 +35,7 @@ function Test-SysvolReplication {
     17001 - Cycle Count
     17002 - Test Object not yet on DC
     17003 - Test Object on DC
-    17004 - Tests didn't complete in alloted time span8:32 AM 10/25/2018
+    17004 - Tests didn't complete in alloted time span
     17005 - Job output
     17006 - Test Object Created
     17007 - Test Object Deleted
@@ -64,17 +64,32 @@ function Test-SysvolReplication {
             Write-Verbose 'PDCE is online'
             $TempObjectLocation = "\\$SourceSystem\SYSVOL\$domainname\Scripts"
             $tempObjectName = "sysvolReplTempObject" + (Get-Date -f yyyyMMddHHmmss) + ".txt"
+            $objectPath = "\\$SourceSystem\SYSVOL\$domainname\Scripts\$tempObjectName"
             "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $($TempObjectLocation + "\" + $tempObjectName)
             $site = (Get-ADDomainController $SourceSystem).site
 
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17006 -EntryType Information -message "Test object - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17006"
+            Start-Sleep 5
+            If (!(Test-Path -Path $objectPath)){
+                Write-Verbose "Object wasn't created properly, trying a second time"
+                "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $($TempObjectLocation + "\" + $tempObjectName)
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17006 -EntryType Information -message "Test object attempt Number 2 - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17006"
+                Start-Sleep 5
+            }
+
+            If (!(Test-Path -Path $objectPath)){
+                Write-Verbose "Object wasn't created properly after 2 tries, exiting..."
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "Failed to write test object to PDCE - $SourceSystem  in site - $site" -category "17000"
+                Exit
+            }
+            
             $startDateTime = Get-Date
             $i = 0
         }
         else {
             Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17000"
-            break
+            Exit
         }
         
         While ($continue) {
