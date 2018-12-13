@@ -16,8 +16,8 @@ function Test-ADInternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.6
-    Version Date: 11/19/2018
+    Version: 0.7
+    Version Date: 12/12/2018
     
     Event Source 'PSMonitor' will be created
 
@@ -31,8 +31,10 @@ function Test-ADInternalTimeSync {
 
     Begin {
         Import-Module activedirectory
+        $CurrentFailure = $null
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         $SupportArticle = $ConfigFile.SupportArticle
+        $SlackToken = $ConfigFile.SlackToken
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -63,6 +65,8 @@ function Test-ADInternalTimeSync {
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Warning -message "FAILURE time drift above maximum allowed on $emailOutput `r`n " -category "17030"
                     $global:CurrentFailure = $true
                     Send-Mail $emailOutput
+                    Write-Verbose "Sending Slack Alert"
+                    New-SlackPost "Alert - Time drift above max threashold - $emailOutput"
                 }#end if
             }#End Foreach
          }#End Process
@@ -76,6 +80,8 @@ function Test-ADInternalTimeSync {
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
                 Send-AlertCleared
+                Write-Verbose "Sending Slack Message - Alert Cleared"
+                New-SlackPost "The previous alert, for AD Internal Time Sync, has cleared."
                 #Write-Output $InError
             }#End if
         }#End if
@@ -159,5 +165,23 @@ function Send-AlertCleared {
     #Send it
     $smtp.Send($msg)
 }
+
+
+function New-SlackPost {
+    param ($issue)
+    $payload = @{
+        "channel" = "#psmonitor";
+        "text" = "$issue";
+        "icon_emoji" = ":bomb:";
+        "username" = "PSMonitor";
+    }
+    Write-Verbose "Sending Slack Message"
+    Invoke-WebRequest `
+    -Uri "https://hooks.slack.com/services/$SlackToken" `
+    -Method "POST" `
+    -Body (ConvertTo-Json -Compress -InputObject $payload)         
+}
+
+
 
 Test-ADInternalTimeSync #-Verbose
