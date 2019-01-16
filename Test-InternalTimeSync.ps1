@@ -1,42 +1,187 @@
-# Test-InternalTimeSync.ps1
-
-$SMTPServer = 'smtp.bigfirm.biz'
-$MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
-$MailTo = "michael_kanakos@bigfirm.biz"
-$DClist = (get-adgroupmember "Domain Controllers").name
-$PDCEmulator = (get-addomaincontroller -Discover -Service PrimaryDC).name
-$MaxTimeDrift = 45
-
-Import-Module ActiveDirectory
-
-ForEach ($server in $DClist){
-    $Remotetime = ([WMI]'').ConvertToDateTime((gwmi win32_operatingsystem
-     -computername $server).LocalDateTime)
-
-    $Referencetime = ([WMI]'').ConvertToDateTime((gwmi win32_operatingsystem
-     -ComputerName $PDCEmulator).LocalDateTime)
+function Test-ADInternalTimeSync {
+    [CmdletBinding()]
+    Param()
+    <#
+    .SYNOPSIS
+    Monitor AD Internal Time Sync
     
-    $result = (NEW-TIMESPAN –Start $Referencetime –End $Remotetime).Seconds
+    .DESCRIPTION
+    This script monitors DCs for Time Sync Issues
 
-    #If result is a negative number (ie -6 seconds) convert to positive number 
-    # for easy comparison
-    If ($result -lt 0){ $result = $result * (-1)}
+    .EXAMPLE
+    Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found.
 
-    #test if result is greater than max time drift
-    If ($result -gt $MaxTimeDrift){
+    .EXAMPLE
+    Run in verbose mode if you want on-screen feedback for testing
+   
+    .NOTES
+    Authors: Mike Kanakos, Greg Onstot
+    Version: 0.7
+    Version Date: 12/12/2018
+    
+    Event Source 'PSMonitor' will be created
 
-    $Subject = "Time drift issue on $Server"
-         $EmailBody = @"
-  
-  
- The time on Server named <font color="Red"><b> $Server </b></font> has drifted more than $MaxTimeDrift seconds!
- Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
- <br/>
- THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
+    EventID Definition:
+    17030 - Failure
+    17031 - Beginning of test
+    17032 - Testing individual systems
+    17033 - End of test
+    17034 - Alert Email Sent
+    #>
+
+    Begin {
+        Import-Module activedirectory
+        $CurrentFailure = $null
+        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
+        $SupportArticle = $ConfigFile.SupportArticle
+        $SlackToken = $ConfigFile.SlackToken
+        if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
+            write-verbose "Adding Event Source."
+            New-EventLog -LogName Application -Source "PSMonitor"
+        }#end if
+        #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
+        $DClist = (Get-ADDomainController -Filter *).name  # For ALL DCs
+        $PDCEmulator = (Get-ADDomainController -Discover -Service PrimaryDC).name
+        $MaxTimeDrift = $ConfigFile.MaxIntTimeDrift
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17031 -EntryType Information -message "START of Internal Time Sync Test Cycle ." -category "17031"
+    }#End Begin
+
+    Process {
+        Foreach ($server in $DClist) {
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17032 -EntryType Information -message "CHECKING Internal Time Sync on Server - $server" -category "17032"
+            Write-Verbose "CHECKING - $server"
+            $OutputDetails = $null
+            $Remotetime = ([WMI]'').ConvertToDateTime((Get-WmiObject -Class win32_operatingsystem -ComputerName $server).LocalDateTime)
+            $Referencetime = ([WMI]'').ConvertToDateTime((Get-WmiObject -Class win32_operatingsystem -ComputerName $PDCEmulator).LocalDateTime)
+            $result = (New-TimeSpan -Start $Referencetime -End $Remotetime).Seconds
+            Write-Verbose "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime"
+            #If result is a negative number (ie -6 seconds) convert to positive number
+            # for easy comparison
+            If ($result -lt 0) { $result = $result * (-1)}
+                #test if result is greater than max time drift
+                If ($result -gt $MaxTimeDrift) {
+                    $emailOutput = "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime `r`n "
+                    Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
+                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Warning -message "FAILURE time drift above maximum allowed on $emailOutput `r`n " -category "17030"
+                    $global:CurrentFailure = $true
+                    Send-Mail $emailOutput
+                    Write-Verbose "Sending Slack Alert"
+                    New-SlackPost "Alert - Time drift above max threashold - $emailOutput"
+                }#end if
+            }#End Foreach
+         }#End Process
+    End{
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17033 -EntryType Information -message "END of Internal Time Sync Test Cycle ." -category "17033"
+        If (!$CurrentFailure){
+            Write-Verbose "No Issues found in this run"
+            $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | where {($_.InstanceID -Match "17030")} 
+            If ($InError) {
+                Write-Verbose "Previous Errors Seen"
+                #Previous run had an alert
+                #No errors foun during this test so send email that the previous error(s) have cleared
+                Send-AlertCleared
+                Write-Verbose "Sending Slack Message - Alert Cleared"
+                New-SlackPost "The previous alert, for AD Internal Time Sync, has cleared."
+                #Write-Output $InError
+            }#End if
+        }#End if
+    }#End End
+}#End Function
+
+function Send-Mail {
+    Param($emailOutput)
+    Write-Verbose "Sending Email"
+    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17034 -EntryType Information -message "ALERT Email Sent" -category "17034"
+    Write-Verbose "Output is --  $emailOutput"
+    
+    #Mail Server Config
+    $NBN = (Get-ADDomain).NetBIOSName
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
+    $smtp = new-object Net.Mail.SmtpClient($smtpServer)
+    $msg = new-object Net.Mail.MailMessage
+
+    #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
+    }
+    
+    #Message:
+    $msg.From = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.subject = "$NBN AD Internal Time Sync Alert!"
+    $msg.body = @"
+        Time of Event: $((get-date))`r`n $emailOutput
+        See the following support article $SupportArticle
 "@
 
-    Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
-    -Subject $Subject -Body $EmailBody -BodyAsHtml
+    #Send it
+    $smtp.Send($msg)
+}
 
-    } #End if
-  } #End Foreach
+function Send-AlertCleared {
+    Param($InError)
+    Write-Verbose "Sending Email"
+    Write-Verbose "Output is --  $InError"
+    
+    #Mail Server Config
+    $NBN = (Get-ADDomain).NetBIOSName
+    $Domain = (Get-ADDomain).DNSRoot
+    $smtpServer = $ConfigFile.SMTPServer
+    $smtp = new-object Net.Mail.SmtpClient($smtpServer)
+    $msg = new-object Net.Mail.MailMessage
+
+    #Send to list:    
+    $emailCount = ($ConfigFile.Email).Count
+    If ($emailCount -gt 0){
+        $Emails = $ConfigFile.Email
+        foreach ($target in $Emails){
+        Write-Verbose "email will be sent to $target"
+        $msg.To.Add("$target")
+        }
+    }
+    Else{
+        Write-Verbose "No email addresses defined"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
+    }
+    #Message:
+    $msg.From = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.subject = "$NBN AD Internal Time Sync - Alert Cleared!"
+    $msg.body = @"
+        The previous alert has now cleared.
+
+        Thanks.
+"@
+    #Send it
+    $smtp.Send($msg)
+}
+
+
+function New-SlackPost {
+    param ($issue)
+    $payload = @{
+        "channel" = "#psmonitor";
+        "text" = "$issue";
+        "icon_emoji" = ":bomb:";
+        "username" = "PSMonitor";
+    }
+    Write-Verbose "Sending Slack Message"
+    Invoke-WebRequest `
+    -Uri "https://hooks.slack.com/services/$SlackToken" `
+    -Method "POST" `
+    -Body (ConvertTo-Json -Compress -InputObject $payload)         
+}
+
+
+
+Test-ADInternalTimeSync #-Verbose
