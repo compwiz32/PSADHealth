@@ -16,8 +16,8 @@ function Test-ADInternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.7
-    Version Date: 12/12/2018
+    Version: 0.7.1
+    Version Date: 1/07/2019
     
     Event Source 'PSMonitor' will be created
 
@@ -158,7 +158,7 @@ function Send-AlertCleared {
     $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domain"
     $msg.subject = "$NBN AD Internal Time Sync - Alert Cleared!"
     $msg.body = @"
-        The previous alert has now cleared.
+        The previous Internal AD Time Sync alert has now cleared.
 
         Thanks.
 "@

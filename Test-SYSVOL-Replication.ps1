@@ -25,8 +25,8 @@ function Test-SysvolReplication {
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
-    Version: 0.6.1
-    Version Date: 12/04/2018
+    Version: 0.6.3
+    Version Date: 1/07/2019
     
     Event Source 'PSMonitor' will be created
 
@@ -72,6 +72,8 @@ function Test-SysvolReplication {
             Start-Sleep 5
             If (!(Test-Path -Path $objectPath)){
                 Write-Verbose "Object wasn't created properly, trying a second time"
+                $tempObjectName = "sysvolReplTempObject" + (Get-Date -f yyyyMMddHHmmss) + ".txt"
+                $objectPath = "\\$SourceSystem\SYSVOL\$domainname\Scripts\$tempObjectName"
                 "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $($TempObjectLocation + "\" + $tempObjectName)
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17006 -EntryType Information -message "Test object attempt Number 2 - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17006"
                 Start-Sleep 5
@@ -258,7 +260,7 @@ function Send-AlertCleared {
     $msg.ReplyTo = "ADSYSVOLREPL-$NBN@$Domain"
     $msg.subject = "$NBN SYSVOL Replication Failure - Alert Cleared!"
     $msg.body = @"
-        The previous alert has now cleared.
+        The previous SYSVOL Replication alert has now cleared.
 
         Thanks.
 "@

@@ -17,8 +17,8 @@ function Test-ADObjectReplication {
    
     .NOTES
     Author Greg Onstot
-    Version: 0.6
-    Version Date: 11/19/2018
+    Version: 0.6.1
+    Version Date: 1/07/2019
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
 
@@ -41,6 +41,7 @@ function Test-ADObjectReplication {
         Import-Module activedirectory
         $NBN = (Get-ADDomain).NetBIOSName
         $Domain = (Get-ADDomain).DNSRoot
+        $domainname = (Get-ADDomain).dnsroot
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         $SupportArticle = $ConfigFile.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
@@ -81,7 +82,7 @@ function Test-ADObjectReplication {
             $Alert = "In $domainname Failed to connect to PDCE - $dc in site - $site.  Test stopping!  See the following support article $SupportArticle"
             $CurrentFailure = $true
             Send-Mail $Alert
-            break
+            Exit
         }
 
         While ($continue) {
@@ -103,9 +104,14 @@ function Test-ADObjectReplication {
                     Write-Verbose "!!!!!OFFLINE - $dc !!!!!"
                     $connectionResult = "FAILURE"
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "Failed to connect to DC - $dc in site - $site" -category "17010"
-                    $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.  See the following support article $SupportArticle"
+                    
                     $CurrentFailure = $true
-                    Send-Mail $Alert
+                    if ($i -eq 10){
+                        $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.  See the following support article $SupportArticle"
+                        #If we get a failure on the 10th run, send an email for additional visibility, but not spam on every pass if a server or site is offline.
+                        Send-Mail $Alert
+                    }
+                    
                 }
 
                 # If The Connection To The DC Is Successful
@@ -143,7 +149,7 @@ function Test-ADObjectReplication {
                 $RelevantEvents = $list |Select InstanceID,Message |Out-String
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "TIMEOUT! - Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
-                $domainname = (Get-ADDomain).dnsroot
+                
                 $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  
                 Please see the following support article $SupportArticle to help investigate
                 
@@ -258,7 +264,7 @@ function Send-AlertCleared {
     $msg.ReplyTo = "ADOBJECTREPL-$NBN@$Domain"
     $msg.subject = "$NBN AD Object Replication Failure - Alert Cleared!"
     $msg.body = @"
-        The previous alert has now cleared.
+        The previous AD Object Replication alert has now cleared.
 
         Thanks.
 "@
