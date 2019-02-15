@@ -23,8 +23,8 @@ The service account must also be granted the Logon as Batch right.
 If you don't want to configure that manually you can use a module like Carbon to grant the service account logon as a batch file:
 http://get-carbon.org/about_Carbon_Installation.html
 Import-Module .\Carbon\Carbon
-Grant-Privilege -Identity starbucksdev\s-adscan -Privilege SeBatchLogonRight
-Grant-Privilege -Identity starbucksdev\s-adscan -Privilege SeServiceLogonRight
+Grant-Privilege -Identity Domain\ServiceAccount -Privilege SeBatchLogonRight
+Grant-Privilege -Identity Domain\ServiceAccount -Privilege SeServiceLogonRight
 
 alternatively you could use the following, or one of many other options:
 https://gallery.technet.microsoft.com/scriptcenter/Grant-Revoke-Query-user-26e259b0
