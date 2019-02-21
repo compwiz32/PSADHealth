@@ -16,8 +16,8 @@ function Test-ADExternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.6
-    Version Date: 11/19/2018
+    Version: 0.7
+    Version Date: 2/15/2019
         
     Event Source 'PSMonitor' will be created
 
@@ -27,12 +27,15 @@ function Test-ADExternalTimeSync {
     17042 - Testing individual systems
     17043 - End of test
     17044 - Alert Email Sent
+    17045 - Automated Repair Attempted
     #>
 
     Begin {
         Import-Module activedirectory
+        $CurrentFailure = $null
         $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
         $SupportArticle = $ConfigFile.SupportArticle
+        $SlackToken = $ConfigFile.SlackToken
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -62,23 +65,32 @@ function Test-ADExternalTimeSync {
             
             Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17040 -EntryType Warning -message "FAILURE External time drift above maximum allowed on $emailOutput `r`n " -category "17040"
+            #attempt to automatically fix the issue
+            Invoke-Command -ComputerName $server -ScriptBlock { 'w32tm /resync' }
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17045 -EntryType Information -message "Remediation script repair was attempted `r`n " -category "17045"
+            CurrentFailure = $true
             Send-Mail $emailOutput
-            $global:CurrentFailure = $true
+            Write-Verbose "Sending Slack Alert"
+            New-SlackPost "Alert - External Time drift above max threashold - $emailOutput"
         }#end if
-    }#End Process
-    End {
-        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17043 -EntryType Information -message "END of External Time Sync Test Cycle ." -category "17043"
-        If (!$CurrentFailure){
+        If (!$CurrentFailure) {
             Write-Verbose "No Issues found in this run"
             $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | where {($_.InstanceID -Match "17040")} 
-            If ($InError) {
+            $errtext = $InError |out-string
+            If ($errtext -like "*$server*") {
                 Write-Verbose "Previous Errors Seen"
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
                 Send-AlertCleared
+                Write-Verbose "Sending Slack Message - Alert Cleared"
+                New-SlackPost "The previous alert, for AD External Time Sync, has cleared."
                 #Write-Output $InError
             }#End if
         }#End if
+    }#End Process
+    End {
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17043 -EntryType Information -message "END of External Time Sync Test Cycle ." -category "17043"
+        
     }#End End
     
 }#End Function
@@ -138,14 +150,14 @@ function Send-AlertCleared {
 
     #Send to list:    
     $emailCount = ($ConfigFile.Email).Count
-    If ($emailCount -gt 0){
+    If ($emailCount -gt 0) {
         $Emails = $ConfigFile.Email
-        foreach ($target in $Emails){
-        Write-Verbose "email will be sent to $target"
-        $msg.To.Add("$target")
+        foreach ($target in $Emails) {
+            Write-Verbose "email will be sent to $target"
+            $msg.To.Add("$target")
         }
     }
-    Else{
+    Else {
         Write-Verbose "No email addresses defined"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
     }
@@ -154,12 +166,28 @@ function Send-AlertCleared {
     $msg.ReplyTo = "ADExternalTimeSync-$NBN@$Domain"
     $msg.subject = "$NBN AD External Time Sync - Alert Cleared!"
     $msg.body = @"
-        The previous alert has now cleared.
+        The previous alert for AD External Time Sync has now cleared.
 
         Thanks.
 "@
     #Send it
     $smtp.Send($msg)
 }
+
+function New-SlackPost {
+    param ($issue)
+    $payload = @{
+        "channel"    = "#psmonitor";
+        "text"       = "$issue";
+        "icon_emoji" = ":bomb:";
+        "username"   = "PSMonitor";
+    }
+    Write-Verbose "Sending Slack Message"
+    Invoke-WebRequest `
+        -Uri "https://hooks.slack.com/services/$SlackToken" `
+        -Method "POST" `
+        -Body (ConvertTo-Json -Compress -InputObject $payload)         
+}
+
 
 Test-ADExternalTimeSync #-Verbose
