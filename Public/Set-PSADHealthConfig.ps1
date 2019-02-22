@@ -31,11 +31,18 @@ function Set-PSADHealthConfig
     $obj = @{
 
         SMTPServer = $SMTPServer
+        Email = @('test@fqdn.com')
+        MaxDaysSinceBackup = '1'
+        MaxIntTimeDrift = '45'
+        MaxExtTimeDrift = '15'
+        ExternalTimeSvr = 'time.fqdn'
+        MaxObjectReplCycles = '50'
+        MaxSysvolReplCycles = '50'
+        SupportArticle  = "https://<YourServer/YourTroubleshootingArticles>"
+        SlackToken = '<SlackAPIToken>'
 
     }
 
     [pscustomobject]$obj | ConvertTo-Json | Add-Content $PSADHealthConfigPath
-
-
 
 }
