@@ -24,22 +24,58 @@ function Set-PSADHealthConfig
 
         [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [string]
-        $SMTPServer = "mail.server.fqdn"
+        $SMTPServer = "mail.server.fqdn",
+
+        [Parameter()]
+        [String[]]
+        $Email,
+
+        [Parameter()]
+        [String]
+        $MaxDaysSinceBackup,
+
+        [Parameter()]
+        [Int]
+        $MaxIntTimeDrift,
+
+        [Parameter()]
+        [Int]
+        $MaxExtTimeDrift,
+
+        [Parameter()]
+        [string]
+        $ExternalTimeServer,
+
+        [Parameter()]
+        [Int]
+        $MaxObjectReplCycles,
+
+        [Parameter()]
+        [Int]
+        $MaxSysvolReplCycles,
+
+        [Parameter()]
+        [String]
+        $SupportArticleUrl,
+
+        [Parameter()]
+        [String]
+        $SlackToken
     )
 
     
     $obj = @{
 
         SMTPServer = $SMTPServer
-        Email = @('test@fqdn.com')
-        MaxDaysSinceBackup = '1'
-        MaxIntTimeDrift = '45'
-        MaxExtTimeDrift = '15'
-        ExternalTimeSvr = 'time.fqdn'
-        MaxObjectReplCycles = '50'
-        MaxSysvolReplCycles = '50'
-        SupportArticle  = "https://<YourServer/YourTroubleshootingArticles>"
-        SlackToken = '<SlackAPIToken>'
+        Email = $Email
+        MaxDaysSinceBackup = $MaxDaysSinceBackup
+        MaxIntTimeDrift = $MaxIntTimeDrift
+        MaxExtTimeDrift = $MaxExtTimeDrift
+        ExternalTimeSvr = $ExternalTimeServer
+        MaxObjectReplCycles = $MaxObjectReplCycles
+        MaxSysvolReplCycles = $MaxSysvolReplCycles
+        SupportArticle  = $SupportArticleUrl
+        SlackToken = $SlackToken
 
     }
 
