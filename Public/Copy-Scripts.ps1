@@ -11,6 +11,8 @@ function Copy-Files ($scriptToDeploy)
     
 }
 
+
+<# Comment out to test module loading.
 $scriptToDeploy = "C:\Scripts\Test-ADReplication.ps1"
 Copy-Files $scriptToDeploy
 
@@ -31,3 +33,5 @@ Copy-Files $scriptToDeploy
 
 $scriptToDeploy = "C:\Scripts\Test-SYSVOL-Replication.ps1"
 Copy-Files $scriptToDeploy
+
+#>

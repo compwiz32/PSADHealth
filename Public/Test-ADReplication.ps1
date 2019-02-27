@@ -160,4 +160,3 @@ function Send-AlertCleared {
     $smtp.Send($msg)
 }
 
-Test-ADReplication #-Verbose

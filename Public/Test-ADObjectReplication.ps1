@@ -273,4 +273,3 @@ function Send-AlertCleared {
 }
 
 
-Test-ADObjectReplication #-Verbose
