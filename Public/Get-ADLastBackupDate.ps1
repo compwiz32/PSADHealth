@@ -1,4 +1,4 @@
-function Test-ADInternalTimeSync {
+function Get-ADLastBackupDate {
     [CmdletBinding()]
     Param()
     <#
