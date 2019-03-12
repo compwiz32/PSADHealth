@@ -3,10 +3,15 @@ Function Test-ADServices {
     [cmdletBinding()]
     Param()
 
-    Begin {}
+    Begin {
+
+        #Config data will be stored in this object.
+        $config = Get-ADConfig
+
+    }
 
     Process {
-        $SMTPServer = 'smtp.bigfirm.biz'
+        $SMTPServer = $config.smtpserver #Use this method for accessing config data info.
         $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
         $MailTo = "michael_kanakos@bigfirm.biz"
         $DClist = (get-adgroupmember "Domain Controllers").name
@@ -18,7 +23,7 @@ Function Test-ADServices {
         Import-Module ActiveDirectory
 
 
-        ForEach ($server in $DClist){ 
+        ForEach ($server in $DClist){
 
             ForEach ($service in $collection){
                 Get-Service -name $service -ComputerName $server
@@ -27,8 +32,8 @@ Function Test-ADServices {
                         {
                         $Subject = "Windows Service $Service.Displayname is offline"
                         $EmailBody = @"
-        
-        
+
+
         Server named <font color="Red"><b> $Server </b></font> is offline!
         Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
         <br/>
