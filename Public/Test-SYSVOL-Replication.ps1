@@ -267,6 +267,3 @@ function Send-AlertCleared {
     #Send it
     $smtp.Send($msg)
 }
-
-
-Test-SysvolReplication #-Verbose
