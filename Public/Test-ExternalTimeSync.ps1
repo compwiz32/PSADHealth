@@ -188,6 +188,3 @@ function New-SlackPost {
         -Method "POST" `
         -Body (ConvertTo-Json -Compress -InputObject $payload)         
 }
-
-
-Test-ADExternalTimeSync #-Verbose
