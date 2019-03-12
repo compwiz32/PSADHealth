@@ -20,7 +20,7 @@ function Set-PSADHealthConfig
 
         [Parameter(Position=0)]
         [ValidateScript({Test-Path $_ -Type Container})]
-        $PSADHealthConfigPath = $env:HOME,
+        $PSADHealthConfigPath = "$env:HOMEPATH\ADConfig.json",
 
         [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [string]
