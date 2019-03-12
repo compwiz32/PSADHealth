@@ -1,13 +1,13 @@
 {
-    "SMTPServer": "<YOUR SMTP SERVER>",
-    "Email": ["EMAIL1@YOURDOMAIN", "DL@YOURDOMAIN"],
-    "MaxDaysSinceBackup":"1",
-    "MaxIntTimeDrift":"45",
-    "MaxExtTimeDrift":"15",
-    "ExternalTimeSvr":"<YOUR EXTERNAL-TIME-SERVER>",
-    "MaxObjectReplCycles":"50",
-    "MaxSysvolReplCycles":"50",
-    "SupportArticle":"https://<YourServer/YourTroubleshootingArticles>",
-    "SlackToken":"<YourSlackAPIToken>"
+    "SMTPServer": "smtp.foobar.com",
+    "Email": ["ceo@foobar.com", "supreme_it_leader@foobar.com"],
+    "MaxDaysSinceBackup": "1",
+    "MaxIntTimeDrift": "45",
+    "MaxExtTimeDrift": "15",
+    "ExternalTimeSvr": "time.google.com",
+    "MaxObjectReplCycles": "50",
+    "MaxSysvolReplCycles": "50",
+    "SupportArticle": "https://help.foobar.com/YourTroubleshootingArticles",
+    "SlackToken": "2343-woeij2-jwoeij223-b2334322"
   }
   

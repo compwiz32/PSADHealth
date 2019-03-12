@@ -17,14 +17,14 @@ function Get-ADConfig {
         [Parameter(Mandatory,Position=0)]
         [ValidateScript({ Test-Path $_})]
         [String]
-        $Configuration = "$PSScriptRoot\Public\ADConfig.json"
+        $Configuration
     )
 
     begin {}
 
     process {
 
-        $Global:Configuration | ConvertFrom-JSON $Configuration
+        $Global:Configuration = Get-Content $Configuration | ConvertFrom-JSON
 
     }
 
