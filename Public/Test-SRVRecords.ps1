@@ -23,15 +23,11 @@ Function Test-SRVRecords {
 
         Import-Module ActiveDirectory
 
-        $Results.DC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName
-        -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
-        $Results.GC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName
-        -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
-        $Results.KDC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName
-        -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+        $Results.DC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+        $Results.GC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+        $Results.KDC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
 
-        $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName 
-        -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count) -ne = 1)
+        $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count -ne 1)
 
         ForEach ($Record in $Results.key){
             If ($Record -ne $DCCount){
@@ -53,7 +49,7 @@ Function Test-SRVRecords {
         }#End Foreach
 
 
-        If ($PDC_SRV_RecordCount -ne = 1) { 
+        If ($PDC_SRV_RecordCount -ne 1) { 
                 
                 $Subject = "The PDC SRV record is missing from DNS"
                 $EmailBody = @"
