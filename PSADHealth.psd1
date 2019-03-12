@@ -69,7 +69,20 @@ Copyright = '(c) Mike Kanakos,Greg Onstot. All rights reserved.'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = @('Set-PSADHealth','Restore-PSADHealth')
+FunctionsToExport = @('Get-ADConfig',
+'Get-ADLastBackupDate',
+'Get-DCDiskSpace',
+'Test-ADObjectReplication',
+'Set-PSADHealth',
+'Restore-PSADHealth',
+'Test-ADReplication',
+'Test-ADServices',
+'Test-DCsOnline',
+'Test-ExternalDNSServers',
+'Test-ExternalTimeSync',
+'Test-InternalTimeSync',
+'Test-SRVRecords',
+'Test-SYSVOLReplication')
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = '*'
