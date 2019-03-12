@@ -51,4 +51,3 @@ Function Test-ADServices {
     }
 
 }
-© 2018 GitHub, Inc.
