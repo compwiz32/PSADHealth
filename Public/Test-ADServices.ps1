@@ -5,13 +5,13 @@ Function Test-ADServices {
 
     Begin {
 
-        #Config data will be stored in this object.
-        $config = Get-ADConfig
+        #Creates a global $configuration variable
+        Get-ADConfig
 
     }
 
     Process {
-        $SMTPServer = $config.smtpserver #Use this method for accessing config data info.
+        $SMTPServer = $Configuration.smtpserver #Use this method for accessing config data info.
         $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
         $MailTo = "michael_kanakos@bigfirm.biz"
         $DClist = (get-adgroupmember "Domain Controllers").name

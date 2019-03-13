@@ -14,10 +14,10 @@ function Get-ADConfig {
     #>
     [cmdletBinding()]
     Param(
-        [Parameter(Mandatory,Position=0)]
+        [Parameter(Position=0)]
         [ValidateScript({ Test-Path $_})]
         [String]
-        $Configuration
+        $Configuration = "$PSScriptRoot\ADConfig.json"
     )
 
     begin {}
