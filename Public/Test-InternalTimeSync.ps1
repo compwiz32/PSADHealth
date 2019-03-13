@@ -33,9 +33,9 @@ function Test-ADInternalTimeSync {
     Begin {
         Import-Module activedirectory
         $CurrentFailure = $null
-        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
-        $SupportArticle = $ConfigFile.SupportArticle
-        $SlackToken = $ConfigFile.SlackToken
+        Get-ADConfig
+        $SupportArticle = $Configuration.SupportArticle
+        $SlackToken = $Configuration.SlackToken
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -43,7 +43,7 @@ function Test-ADInternalTimeSync {
         #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
         $DClist = (Get-ADDomainController -Filter *).name  # For ALL DCs
         $PDCEmulator = (Get-ADDomainController -Discover -Service PrimaryDC).name
-        $MaxTimeDrift = $ConfigFile.MaxIntTimeDrift
+        $MaxTimeDrift = $Configuration.MaxIntTimeDrift
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17031 -EntryType Information -message "START of Internal Time Sync Test Cycle ." -category "17031"
     }#End Begin
 
@@ -102,14 +102,14 @@ function Send-Mail {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $ConfigFile.SMTPServer
+    $smtpServer = $Configuration.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($ConfigFile.Email).Count
+    $emailCount = ($Configuration.Email).Count
     If ($emailCount -gt 0){
-        $Emails = $ConfigFile.Email
+        $Emails = $Configuration.Email
         foreach ($target in $Emails){
         Write-Verbose "email will be sent to $target"
         $msg.To.Add("$target")
@@ -141,14 +141,14 @@ function Send-AlertCleared {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $ConfigFile.SMTPServer
+    $smtpServer = $Configuration.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($ConfigFile.Email).Count
+    $emailCount = ($Configuration.Email).Count
     If ($emailCount -gt 0){
-        $Emails = $ConfigFile.Email
+        $Emails = $Configuration.Email
         foreach ($target in $Emails){
         Write-Verbose "email will be sent to $target"
         $msg.To.Add("$target")
