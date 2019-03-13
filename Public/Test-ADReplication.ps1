@@ -31,8 +31,8 @@ function Test-ADReplication {
 
     Begin {
         Import-Module activedirectory
-        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
-        $SupportArticle = $ConfigFile.SupportArticle
+        Get-ADConfig
+        $SupportArticle = $Configuration.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
@@ -92,14 +92,14 @@ function Send-Mail {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $ConfigFile.SMTPServer
+    $smtpServer = $Configuration.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($ConfigFile.Email).Count
+    $emailCount = ($Configuration.Email).Count
     If ($emailCount -gt 0) {
-        $Emails = $ConfigFile.Email
+        $Emails = $Configuration.Email
         foreach ($target in $Emails) {
             Write-Verbose "email will be sent to $target"
             $msg.To.Add("$target")
@@ -130,14 +130,14 @@ function Send-AlertCleared {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $ConfigFile.SMTPServer
+    $smtpServer = $Configuration.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($ConfigFile.Email).Count
+    $emailCount = ($Configuration.Email).Count
     If ($emailCount -gt 0){
-        $Emails = $ConfigFile.Email
+        $Emails = $Configuration.Email
         foreach ($target in $Emails){
         Write-Verbose "email will be sent to $target"
         $msg.To.Add("$target")
