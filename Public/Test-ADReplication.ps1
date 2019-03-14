@@ -31,7 +31,7 @@ function Test-ADReplication {
 
     Begin {
         Import-Module activedirectory
-        Get-ADConfig
+        $null = Get-ADConfig
         $SupportArticle = $Configuration.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."

@@ -26,6 +26,7 @@ function Get-ADConfig {
 
         $Global:Configuration = Get-Content $Configuration | ConvertFrom-JSON
 
+        $Configuration
     }
 
     end {}

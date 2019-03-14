@@ -33,7 +33,7 @@ function Test-ADInternalTimeSync {
     Begin {
         Import-Module activedirectory
         $CurrentFailure = $null
-        Get-ADConfig
+        $null = Get-ADConfig
         $SupportArticle = $Configuration.SupportArticle
         $SlackToken = $Configuration.SlackToken
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {

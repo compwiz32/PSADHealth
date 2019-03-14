@@ -42,7 +42,7 @@ function Test-ADObjectReplication {
         $NBN = (Get-ADDomain).NetBIOSName
         $Domain = (Get-ADDomain).DNSRoot
         $domainname = (Get-ADDomain).dnsroot
-        Get-ADConfig
+        $null = Get-ADConfig
         $SupportArticle = $.SupportArticle
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
