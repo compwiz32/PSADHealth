@@ -6,7 +6,7 @@ Function Test-ADServices {
     Begin {
 
         #Creates a global $configuration variable
-        Get-ADConfig
+        $null = Get-ADConfig
 
     }
 
