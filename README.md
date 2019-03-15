@@ -22,10 +22,10 @@ Maybe your org has no monitoring tools, maybe your looking to fill some gaps, or
 These tools are here for **you**!
 
 
-Install Process:
+## How to install module:
 
-1 - Download Zip
-2 - Unzip
-3 - Import Module
-4 - get-command -module PSADhealth
-5 - Set-ADHelathConfig 
+ 1. Download Zip
+ 2. Unzip
+ 3. Import Module
+ 4. get-command -module PSADHealth
+ 5. Set-ADHealthConfig
