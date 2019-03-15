@@ -64,7 +64,7 @@ function Set-PSADHealthConfig
     )
 
     
-    $config = Get-ADConfig
+    $config = Get-ADConfig -ConfigurationFile $PSADHealthConfigPath
     
     Switch($PSBoundParameters.Keys){
         'SMTPServer' {
