@@ -64,21 +64,42 @@ function Set-PSADHealthConfig
     )
 
     
-    $obj = @{
-
-        SMTPServer = $SMTPServer
-        Email = $Email
-        MaxDaysSinceBackup = $MaxDaysSinceBackup
-        MaxIntTimeDrift = $MaxIntTimeDrift
-        MaxExtTimeDrift = $MaxExtTimeDrift
-        ExternalTimeSvr = $ExternalTimeServer
-        MaxObjectReplCycles = $MaxObjectReplCycles
-        MaxSysvolReplCycles = $MaxSysvolReplCycles
-        SupportArticle  = $SupportArticleUrl
-        SlackToken = $SlackToken
+    $config = Get-ADConfig
+    
+    Switch($PSBoundParameters.Keys){
+        'SMTPServer' {
+            $config.smtpserver = $SMTPServer
+         }
+        'Email' {
+            $config.email = $Email
+        }
+        'MaxDaysSinceBackup' {
+            $config.MaxDaysSinceBackup = $MaxDaysSinceBackup
+        }
+        'MaxIntTimeDrift' {
+            $config.MaxIntTimeDrift = $MaxIntTimeDrift
+        }
+        'MaxExtTimeDrift' {
+            $config.MaxExtTimeDrift = $MaxExtTimeDrift
+        }
+        'ExternalTimeServer' {
+            $config.ExternalTimeSvr = $ExternalTimeServer
+        }
+        'MaxObjectReplCycles' {
+            $config.MaxObjectReplCycles = $MaxObjectReplCycles
+        }
+        'MaxSysvolReplCycles' {
+            $config.MaxSysvolReplCycles = $MaxSysvolReplCycles
+        }
+        'SupportArticleUrl' {
+            $config.SupportArticle = $SupportArticleUrl
+        }
+        'SlackToken' {
+            $config.SlackToken = $SlackToken
+        }
 
     }
-
-    [pscustomobject]$obj | ConvertTo-Json | Add-Content $PSADHealthConfigPath
-
+    
+    $config | ConvertTo-Json | Set-Content $PSADHealthConfigPath
+	
 }
