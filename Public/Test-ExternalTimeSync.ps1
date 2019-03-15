@@ -33,17 +33,17 @@ function Test-ADExternalTimeSync {
     Begin {
         Import-Module activedirectory
         $CurrentFailure = $null
-        $ConfigFile = Get-Content C:\Scripts\ADConfig.json |ConvertFrom-Json
-        $SupportArticle = $ConfigFile.SupportArticle
-        $SlackToken = $ConfigFile.SlackToken
+        $null = Get-ADConfig
+        $SupportArticle = $Configuration.SupportArticle
+        $SlackToken = $Configuration.SlackToken
         if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
             write-verbose "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
         }#end if
         #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
         $PDCEmulator = (Get-ADDomainController -Discover -Service PrimaryDC).name
-        $ExternalTimeSvr = $ConfigFile.ExternalTimeSvr
-        $MaxTimeDrift = $ConfigFile.MaxExtTimeDrift
+        $ExternalTimeSvr = $Configuration.ExternalTimeSvr
+        $MaxTimeDrift = $Configuration.MaxExtTimeDrift
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17041 -EntryType Information -message "START of External Time Sync Test Cycle ." -category "17041"
     }#End Begin
 
@@ -104,14 +104,14 @@ function Send-Mail {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $ConfigFile.SMTPServer
+    $smtpServer = $Configuration.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($ConfigFile.Email).Count
+    $emailCount = ($Configuration.Email).Count
     If ($emailCount -gt 0) {
-        $Emails = $ConfigFile.Email
+        $Emails = $Configuration.Email
         foreach ($target in $Emails) {
             Write-Verbose "email will be sent to $target"
             $msg.To.Add("$target")
@@ -144,14 +144,14 @@ function Send-AlertCleared {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $ConfigFile.SMTPServer
+    $smtpServer = $Configuration.SMTPServer
     $smtp = new-object Net.Mail.SmtpClient($smtpServer)
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($ConfigFile.Email).Count
+    $emailCount = ($Configuration.Email).Count
     If ($emailCount -gt 0) {
-        $Emails = $ConfigFile.Email
+        $Emails = $Configuration.Email
         foreach ($target in $Emails) {
             Write-Verbose "email will be sent to $target"
             $msg.To.Add("$target")
@@ -188,6 +188,3 @@ function New-SlackPost {
         -Method "POST" `
         -Body (ConvertTo-Json -Compress -InputObject $payload)         
 }
-
-
-Test-ADExternalTimeSync #-Verbose

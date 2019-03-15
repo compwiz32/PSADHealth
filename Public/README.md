@@ -1,4 +1,4 @@
-# PSADHealth
+# PS-ADHealth
 
 ## Overview
 
@@ -20,12 +20,3 @@ These toolkit is meant to be used by anyone!
 Maybe your org has no monitoring tools, maybe your looking to fill some gaps, or maybe you you have lost faith in the tools currently in use at your org.
 
 These tools are here for **you**!
-
-
-## How to install module:
-
- 1. Download Zip
- 2. Unzip
- 3. Import Module
- 4. get-command -module PSADHealth
- 5. Set-ADHealthConfig
