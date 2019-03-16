@@ -1,6 +1,7 @@
 {
     "SMTPServer": "smtp.foobar.com",
-    "Email": ["ceo@foobar.com", "supreme_it_leader@foobar.com"],
+    "MailFrom": "ad_status_alert@foobar.com",
+    "MailTo": ["ceo@foobar.com", "supreme_it_leader@foobar.com"],
     "MaxDaysSinceBackup": "1",
     "MaxIntTimeDrift": "45",
     "MaxExtTimeDrift": "15",
