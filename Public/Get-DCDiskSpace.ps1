@@ -9,9 +9,6 @@ Function Get-DCDiskspace {
       }
 
       process {
-            $SMTPServer = $Configuration.SmtpServer
-            $MailFrom = $Configuration.MailFrom
-            $MailTo = $Configuration.MailTo
             $DClist = (get-adgroupmember "Domain Controllers").name
             $FreeDiskThreshold = 20
 
