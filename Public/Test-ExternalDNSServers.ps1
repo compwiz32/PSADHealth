@@ -3,13 +3,15 @@ Function Test-ExternalDNSServers {
     [cmdletBinding()]
     Param()
 
-    begin {}
+    begin {
+        Import-Module ActiveDirectory
+        #Creates a global $configuration variable
+        $null = Get-ADConfig
+    }
 
     process {
         $DClist = (get-adgroupmember "Domain Controllers").name
         $ExternalDNSServers = $Configuration.ExternalDNSServers 
-
-        Import-Module ActiveDirectory
 
         ForEach ($server in $DClist){
 
