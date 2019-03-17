@@ -1,27 +1,29 @@
-# Test-SRVRecords.ps1
 Function Test-SRVRecords {
 
     [cmdletBinding()]
     Param()
 
-    begin {}
+    begin {
+        Import-Module ActiveDirectory
+        #Creates a global $configuration variable
+        $null = Get-ADConfig
+    }
 
     process {
-        $SMTPServer = 'smtp.bigfirm.biz'
-        $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
-        $MailTo = "michael_kanakos@bigfirm.biz"
+        $DomainFQDN = (get-addomain).dnsroot
         $DCList = (get-adgroupmember "Domain Controllers").name
         $DCCount = (get-adgroupmember "Domain Controllers").count
         $PDCEmulator = (get-addomaincontroller -Discover -Service PrimaryDC).name
-        $MSDCSZoneName = '_msdcs.bigfirm.biz'
-        $ZoneName = 'lord.local'
+        $MSDCSZoneName = "_msdcs." + $DomainFQDN
+        
+        # $MSDCSZoneName = '_msdcs.bigfirm.biz'
+        
         $DC_SRV_Record = '_ldap._tcp.dc'
         $GC_SRV_Record = '_ldap._tcp.gc'
         $KDC_SRV_Record = '_kerberos._tcp.dc'
         $PDC_SRV_Record = '_ldap._tcp.pdc'
-        $Results = @{}
-
-        Import-Module ActiveDirectory
+        
+        $Results = @{}      
 
         $Results.DC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
         $Results.GC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
@@ -42,8 +44,16 @@ Function Test-SRVRecords {
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
 
-            Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
-            -Subject $Subject -Body $EmailBody -BodyAsHtml
+            $mailParams = @{
+                To = $Configuration.MailTo
+                From = $Configuration.MailFrom
+                SmtpServer = $Configuration.SmtpServer
+                Subject = $Subject
+                Body = $EmailBody
+                BodyAsHtml = $true
+            }
+
+            Send-MailMessage @mailParams
 
             } #End if
         }#End Foreach
@@ -61,8 +71,17 @@ Function Test-SRVRecords {
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
 
-            Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
-            -Subject $Subject -Body $EmailBody -BodyAsHtml
+            $mailParams = @{
+                To = $Configuration.MailTo
+                From = $Configuration.MailFrom
+                SmtpServer = $Configuration.SmtpServer
+                Subject = $Subject
+                Body = $EmailBody
+                BodyAsHtml = $true
+            }
+            
+            Send-MailMessage @mailParams
+
             } #END PDC If
 
     }
