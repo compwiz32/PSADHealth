@@ -3,16 +3,15 @@ Function Test-ExternalDNSServers {
     [cmdletBinding()]
     Param()
 
-    begin {}
+    begin {
+        Import-Module ActiveDirectory
+        #Creates a global $configuration variable
+        $null = Get-ADConfig
+    }
 
     process {
-        $SMTPServer = 'smtp.bigfirm.biz'
-        $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
-        $MailTo = "michael_kanakos@bigfirm.biz"
         $DClist = (get-adgroupmember "Domain Controllers").name
-        $ExternalDNSServers = '208.67.222.222 ','208.67.220.220'
-
-        Import-Module ActiveDirectory
+        $ExternalDNSServers = $Configuration.ExternalDNSServers 
 
         ForEach ($server in $DClist){
 
@@ -29,9 +28,16 @@ Function Test-ExternalDNSServers {
         <br/>
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
-
-            Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
-            -Subject $Subject -Body $EmailBody -BodyAsHtml
+         
+                $mailParams = @{
+                    To = $Configuration.MailTo
+                    From = $Configuration.MailFrom
+                    SmtpServer = $Configuration.SmtpServer
+                    Subject = $Subject
+                    Body = $EmailBody
+                    BodyAsHtml = $true
+                }
+                Send-MailMessage @mailParams
 
                 } #End if
             }# End Foreach (DCLIst)

@@ -27,8 +27,12 @@ function Set-PSADHealthConfig
         $SMTPServer = "mail.server.fqdn",
 
         [Parameter()]
+        [String]
+        $MailFrom,
+
+        [Parameter()]
         [String[]]
-        $Email,
+        $MailTo,
 
         [Parameter()]
         [String]
@@ -70,8 +74,11 @@ function Set-PSADHealthConfig
         'SMTPServer' {
             $config.smtpserver = $SMTPServer
          }
-        'Email' {
-            $config.email = $Email
+        'MailFrom' {
+            $config.MailFrom = $MailFrom
+        }
+        'MailTo' {
+            $config.MailTo = $MailTo
         }
         'MaxDaysSinceBackup' {
             $config.MaxDaysSinceBackup = $MaxDaysSinceBackup

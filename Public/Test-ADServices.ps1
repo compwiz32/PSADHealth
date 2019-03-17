@@ -1,53 +1,71 @@
 # Test-ADServices.ps1
-Function Test-ADServices {
+function Test-ADServices {
     [cmdletBinding()]
     Param()
 
-    Begin {
-
+    begin {
+        Import-Module ActiveDirectory
         #Creates a global $configuration variable
         $null = Get-ADConfig
-
     }
 
-    Process {
-        $SMTPServer = $Configuration.smtpserver #Use this method for accessing config data info.
-        $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
-        $MailTo = "michael_kanakos@bigfirm.biz"
+    process {
         $DClist = (get-adgroupmember "Domain Controllers").name
+        $collection = @('ADWS',
+                        'DHCPServer',
+                        'DNS',
+                        'DFS',
+                        'DFSR',
+                        'Eventlog',
+                        'EventSystem',
+                        'KDC',
+                        'LanManWorkstation',
+                        'LanManWorkstation',
+                        'NetLogon',
+                        'NTDS',
+                        'RPCSS',
+                        'SAMSS',
+                        'W32Time')
 
-        $collection = @('ADWS','DHCPServer','DNS','DFS','DFSR','Eventlog','EventSystem','KDC','LanManWorkstation',
-            'LanManWorkstation','NetLogon','NTDS','RPCSS','SAMSS','W32Time')
+        
 
+        forEach ($server in $DClist){
+            
+            forEach ($service in $collection){
+                try {
+                    Get-Service -Name $Service -Computername $server -ErrorAction Stop
+                }
+                
+                catch {
+                    Out-Null
+                }
 
-        Import-Module ActiveDirectory
-
-
-        ForEach ($server in $DClist){
-
-            ForEach ($service in $collection){
-                Get-Service -name $service -ComputerName $server
-
-                if ($service.status -eq "Stopped")
-                        {
-                        $Subject = "Windows Service $Service.Displayname is offline"
-                        $EmailBody = @"
-
-
-        Server named <font color="Red"><b> $Server </b></font> is offline!
-        Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
-        <br/>
-        THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
+                if ($service.status -eq "Stopped"){
+                    $Subject = "Windows Service $($Service.Displayname) is offline"
+                    
+                    $EmailBody = @"
+                        Server named <font color="Red"><b>$Server</b></font> is offline!
+                        Time of Event: <font color="Red"><b>$((get-date))</b></font><br/>
+                        <br/>
+                        THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
-
-                Send-MailMessage -To $MailAdmin -From $MailTo -SmtpServer $SMTPServer
-                -Subject $Subject -Body $EmailBody -BodyAsHtml
+                
+                    $mailParams = @{
+                        To = $Configuration.MailTo
+                        From = $Configuration.MailFrom
+                        SmtpServer = $Configuration.SmtpServer
+                        Subject = $Subject
+                        Body = $EmailBody
+                        BodyAsHtml = $true
+                    }
+                    Send-MailMessage @mailParams
+                
                 } #End If
 
-            } #End Services Foreach
+            } #Service Foreach
+        
+        } #DCList Foreach
+    
+    } #Process
 
-        } #End of Server ForEach
-
-    }
-
-}
+} #function

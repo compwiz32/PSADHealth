@@ -17,7 +17,7 @@ function Get-ADConfig {
         [Parameter(Position=0)]
         [ValidateScript({ Test-Path $_})]
         [String]
-        $ConfigurationFile = "$PSScriptRoot\ADConfig.json"
+        $ConfigurationFile = "$(Split-Path $PSScriptRoot)\Config\ADConfig.json"
     )
 
     begin {}
