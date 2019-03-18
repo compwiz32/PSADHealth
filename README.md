@@ -6,7 +6,7 @@ Table of Contents
   - [History](#history)
   - [What does this toolkit do?](#what-does-this-toolkit-do)
   - [Who is this for?](#who-is-this-for)
-  - [How to install module:](#how-to-install-module)
+  - [How to install module](#how-to-install-module)
 
 ## Overview
 
@@ -28,10 +28,25 @@ These tools designed to be plugged into templates for email alerts, chatbot upda
 
 These toolkit is meant to be used by anyone who has a hand in maintaining an Active Directory instance. Maybe your org has no monitoring tools, maybe your looking to fill some gaps, or maybe you you have lost faith in the tools currently in use at your org. You can download this module and use it right away. 
 
-## How to install module:
+## How to install module
 
- 1. Download Zip
+ 1. Download Zip to the computer that will run the module
  2. Unzip
- 3. Import Module
- 4. get-command -module PSADHealth
- 5. Set-ADHealthConfig
+ 3. Place module in the appropriate PowerShell folder on computer
+    ```
+    C:\Program Files (x86)\WindowsPowerShell\Modules 
+    C:\Users\%username%\Documents\WindowsPowerShell\Modules
+    ```
+
+ 4. Import Module
+    `Import-Module PSADHealth`
+
+ 5. Verify Module is loaded
+    `get-command -module PSADHealth`
+
+ 6. Run `Get-ADHealthConfig` to see the default values included in module.
+
+ 7. Run `Set-ADHealthConfig` to specify the values you want to use
+
+ 8. Verify the values you set are loaded.
+   `Get-ADHealthConfig -ConfigurationFile c:\users\%username%\adconfig.json`
