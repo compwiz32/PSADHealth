@@ -45,11 +45,11 @@ These toolkit is meant to be used by anyone who has a hand in maintaining an Act
  5. Verify Module is loaded
     `get-command -module PSADHealth`
 
- 6. Run `Get-ADHealthConfig` to see the default values included in module config JSON.
+ 6. Run `Get-ADConfig` to see the default values included in module config JSON.
 
- 7. Run `Set-ADHealthConfig` to change/specify the values you want to use
+ 7. Run `Set-PSADHealthConfig` to change/specify the values you want to use
 
  8. Verify the values you set are loaded.
-   `Get-ADHealthConfig -ConfigurationFile c:\users\%username%\adconfig.json`
+   `Get-ADConfig -ConfigurationFile c:\users\%username%\adconfig.json`
 
 9. Configure scheduled Tasks or Scheduled Jobs to run the tests at intervals you choose. 
