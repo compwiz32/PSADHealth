@@ -41,7 +41,9 @@ function Test-ADServices {
                     Out-Null
                 }
 
+
                 if($s.status -eq "Stopped"){
+
 
                     $Subject = "Windows Service $($Service.Displayname) is offline"
                     
