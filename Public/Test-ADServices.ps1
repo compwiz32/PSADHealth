@@ -40,14 +40,15 @@ function Test-ADServices {
                     Out-Null
                 }
 
-                if ($service.status -eq "Stopped"){
+                if($service.status -eq "Stopped"){
+
                     $Subject = "Windows Service $($Service.Displayname) is offline"
                     
                     $EmailBody = @"
-                        Server named <font color="Red"><b>$Server</b></font> is offline!
-                        Time of Event: <font color="Red"><b>$((get-date))</b></font><br/>
-                        <br/>
-                        THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
+                                Server named <font color=Red><b>$Server</b></font> is offline!
+                                Time of Event: <font color=Red><b>"""$((get-date))"""</b></font><br/>
+                                <br/>
+                                THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
                 
                     $mailParams = @{
@@ -58,6 +59,7 @@ function Test-ADServices {
                         Body = $EmailBody
                         BodyAsHtml = $true
                     }
+
                     Send-MailMessage @mailParams
                 
                 } #End If
