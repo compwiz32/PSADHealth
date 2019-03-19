@@ -15,13 +15,13 @@ Function Get-DCDiskspace {
             ForEach ($server in $DClist){
 
                   $disk = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" -ComputerName $server
-                  $Size = "{0:n0} GB" -f (($disk | Measure-Object -Property Size -Sum).sum/1gb)
-                  $FreeSpace = "{0:n0} GB" -f (($disk | Measure-Object -Property FreeSpace -Sum).sum/1gb)
-                  $freepercent = [math]::round((($free / $size) * 100),0)
+                  $Size = (($disk | Measure-Object -Property Size -Sum).sum/1gb)
+                  $FreeSpace = (($disk | Measure-Object -Property FreeSpace -Sum).sum/1gb)
+                  $freepercent = [math]::round(($FreeSpace / $size) * 100),0)
                   $Diskinfo = [PSCustomObject]@{
                         Drive = $disk.Name
-                        "Total Disk Size (GB)" = $size
-                        "Free Disk Size (GB)" = $FreeSpace
+                        "Total Disk Size (GB)" = [math]::round($size,2)
+                        "Free Disk Size (GB)" = [math]::round($FreeSpace,2)
                         "Percent Free (%)" = $freepercent
                   } #End $DiskInfo Calculations
             
@@ -32,7 +32,7 @@ Function Get-DCDiskspace {
             
             Server named <font color="Red"><b> $Server </b></font> is running low on disk space on drive C:!
             <br/>
-            $Diskinfo
+            $($Diskinfo | ConvertTo-Html -Fragment)
             <br/>
             Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
             <br/>
