@@ -33,14 +33,15 @@ function Test-ADServices {
             
             forEach ($service in $collection){
                 try {
-                    Get-Service -Name $Service -Computername $server -ErrorAction Stop
+                   $s = Get-Service -Name $Service -Computername $server -ErrorAction Stop
+                   $s
                 }
                 
                 catch {
                     Out-Null
                 }
 
-                if($service.status -eq "Stopped"){
+                if($s.status -eq "Stopped"){
 
                     $Subject = "Windows Service $($Service.Displayname) is offline"
                     
