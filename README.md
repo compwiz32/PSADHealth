@@ -30,9 +30,10 @@ These toolkit is meant to be used by anyone who has a hand in maintaining an Act
 
 ## How to install module
 
- 1. Download Zip to the computer that will run the module
- 2. Unzip
- 3. Place module in the appropriate PowerShell folder on computer
+ 1. Download zip file to the computer that will run the module
+ 2. Unzip and rename folder that holds files from `PSHealth-Master` to `PSADHealth`
+ 3. Place renamed folder in the appropriate PowerShell folder on computer
+    
     ```
     C:\Program Files (x86)\WindowsPowerShell\Modules 
     C:\Users\%username%\Documents\WindowsPowerShell\Modules
@@ -44,9 +45,11 @@ These toolkit is meant to be used by anyone who has a hand in maintaining an Act
  5. Verify Module is loaded
     `get-command -module PSADHealth`
 
- 6. Run `Get-ADHealthConfig` to see the default values included in module.
+ 6. Run `Get-ADHealthConfig` to see the default values included in module config JSON.
 
- 7. Run `Set-ADHealthConfig` to specify the values you want to use
+ 7. Run `Set-ADHealthConfig` to change/specify the values you want to use
 
  8. Verify the values you set are loaded.
    `Get-ADHealthConfig -ConfigurationFile c:\users\%username%\adconfig.json`
+
+9. Configure scheduled Tasks or Scheduled Jobs to run the tests at intervals you choose. 
