@@ -35,13 +35,14 @@ function Get-ADLastBackupDate {
     
 
         #get the date of last backup from repadmin command using regex
-        $LastBackup = (repadmin /showbackup $Domain | Select-String $Regex | foreach { $_.Matches } | foreach { $_.Value } )[0]
+        $RepOutput = repadmin /showbackup $Domain
+        $LastBackup = @($RepOutput -split '\r?\n' -match $Regex)[0]
 
         #Compare the last backup date to today's date
         $Result = (NEW-TIMESPAN –Start $LastBackup -End $CurrentDate).Days
             
         #Test if result is greater than max allowed days without backup
-        If ($Result -gt $MaxDaysSinceBackup){
+        If ($Result -gt $MaxDaysSinceBackup) {
 
             $Subject = "Last Active Directory backup occurred on $LastBackup!"
             $EmailBody = @"
@@ -51,7 +52,7 @@ function Get-ADLastBackupDate {
             which was <font color="Red"><b> $Result</b></font> days ago.
             
             You asked to be alerted when backups are not completed for more that $MaxDaysSinceBackup days!
-            Time of Event: <font color="Red"><b> $(get-date) </b></font><br/>
+            Time of Event: <font color="Red"><b> $(Get-Date) </b></font><br/>
             <br/>
             THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
