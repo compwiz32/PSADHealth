@@ -30,7 +30,8 @@ function Get-ADLastBackupDate {
         $Domain = (Get-ADDomain).DNSRoot
         $Regex =  '\d\d\d\d-\d\d-\d\d'
         $CurrentDate = Get-Date
-        $MaxDaysSinceBackup = '1'
+        $MaxDaysSinceBackup = $Configuration.MaxDaysSinceBackup
+        #$MaxDaysSinceBackup = '1'
     
     
 
@@ -42,8 +43,19 @@ function Get-ADLastBackupDate {
         $Result = (NEW-TIMESPAN -Start $LastBackup -End $CurrentDate).Days
             
         #Test if result is greater than max allowed days without backup
-        If ($Result -gt $MaxDaysSinceBackup) {
-
+        If ($null -eq $Result) {
+            $Subject = "Active Directory has never been backed up"
+            $EmailBody = @"
+            
+        
+            A backup of Active Directory has never been completed. Please perform a backup of AD as soon possible!
+            <br/>
+            THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
+"@
+        } #end if
+            
+        elseif ($Result -gt $MaxDaysSinceBackup) {
+          
             $Subject = "Last Active Directory backup occurred on $LastBackup!"
             $EmailBody = @"
             
@@ -72,7 +84,7 @@ function Get-ADLastBackupDate {
         #  Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
         # -Subject $Subject -Body $EmailBody -BodyAsHtml
 
-        } #End if
+        } #End elseif
 
     } #end process
 
