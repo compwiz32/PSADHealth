@@ -7,6 +7,7 @@
     "MaxExtTimeDrift": "15",
     "ExternalTimeSvr": "time.google.com",
     "ExternalDNSServers": ["208.67.222.222","208.67.220.220"],
+    "FreeDiskThreshold": "70",
     "MaxObjectReplCycles": "50",
     "MaxSysvolReplCycles": "50",
     "SupportArticle": "https://help.foobar.com/YourTroubleshootingArticles",
