@@ -23,22 +23,33 @@ Function Test-SRVRecords {
         $KDC_SRV_Record = '_kerberos._tcp.dc'
         $PDC_SRV_Record = '_ldap._tcp.pdc'
         
-        $Results = @{}      
+		$DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+		
+        $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count)
 
-        $Results.DC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
-        $Results.GC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
-        $Results.KDC_SRV_RecordCount = ((Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+		$DCHash = @{}
+		$DCHash.add($dc_SRV_Record,$dc_SRV_RecordCount)
+		
+		$GCHash = @{}
+		$GCHash.add($gc_SRV_Record,$gc_SRV_RecordCount)
+		
+		$KDCHash = @{}
+		$KDCHash.add($kdc_SRV_Record,$kdc_SRV_RecordCount)
 
-        $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count -ne 1)
 
-        ForEach ($Record in $Results.key){
-            If ($Record -ne $DCCount){
-            
-            $Subject = "There is an SRV record missing from DNS"
+
+        $Records = @($DCHash, $GCHash, $KDCHash)
+        ForEach ($Record in $Records){
+            # If ($Record -ne $DCCount){
+            If ($record.values -ne $DCCount){
+				$Subject = "There is an SRV record missing from DNS"
                 $EmailBody = @"
         
         
-        The <font color="Red"><b> $Record </b></font> in DNS does not match the number of Domain Controllers in Active Directory. Please check $MSDCSZoneName DNS Zone for missing SRV records.
+        The number of records in the <font color="Red"><b> $($Record.keys) </b></font> zone in DNS does not match the number of Domain Controllers in Active Directory. Please check  DNS for missing SRV records.
+		
         Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
         <br/>
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
