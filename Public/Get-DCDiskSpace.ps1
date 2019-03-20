@@ -10,7 +10,7 @@ Function Get-DCDiskspace {
 
       process {
             $DClist = (get-adgroupmember "Domain Controllers").name
-            $FreeDiskThreshold = 20
+            $FreeDiskThreshold = $Configuration.FreeDiskThreshold
 
             ForEach ($server in $DClist){
 
