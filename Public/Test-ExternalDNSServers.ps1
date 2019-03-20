@@ -17,8 +17,15 @@ Function Test-ExternalDNSServers {
 
             ForEach ($DNSServer in $ExternalDNSServers) {
                 
-            if  ((!(Invoke-Command -ComputerName $Server {Test-Connection $DNSServer -quiet -count 1})))
-                {
+            if  ((!(
+                        $icmCommand = @{
+                            Computername = $server
+                            ScriptBlock = {Test-Connection $args[0] -quiet -count 1}
+                            ArgumentList = $DNSServer
+                        }
+            
+                        Invoke-Command  @icmCommand)))
+            {
                     
                     $Subject = "External DNS $DNSServer is unreachable"
                     $EmailBody = @"
