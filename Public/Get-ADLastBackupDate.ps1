@@ -45,13 +45,13 @@ function Get-ADLastBackupDate {
 
             $Subject = "Last Active Directory backup occurred on $LastBackup!"
             $EmailBody = @"
-        
+            
         
             The last time Active Directory was backed up was on <font color="Red"><b> $LastBackup </b></font> 
             which was <font color="Red"><b> $Result</b></font> days ago.
             
             You asked to be alerted when backups are not completed for more that $MaxDaysSinceBackup days!
-            Time of Event: <font color="Red"><b> $((get-date)) </b></font><br/>
+            Time of Event: <font color="Red"><b> $(get-date) </b></font><br/>
             <br/>
             THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
@@ -75,7 +75,6 @@ function Get-ADLastBackupDate {
 
     } #end process
 
-    
-    
     End { }
-}
+
+} #end function
