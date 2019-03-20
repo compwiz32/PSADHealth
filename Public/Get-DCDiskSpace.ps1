@@ -17,7 +17,7 @@ Function Get-DCDiskspace {
                   $disk = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" -ComputerName $server
                   $Size = (($disk | Measure-Object -Property Size -Sum).sum/1gb)
                   $FreeSpace = (($disk | Measure-Object -Property FreeSpace -Sum).sum/1gb)
-                  $freepercent = [math]::round(($FreeSpace / $size) * 100),0)
+                  $freepercent = [math]::round(($FreeSpace / $size) * 100,0)
                   $Diskinfo = [PSCustomObject]@{
                         Drive = $disk.Name
                         "Total Disk Size (GB)" = [math]::round($size,2)
@@ -34,7 +34,7 @@ Function Get-DCDiskspace {
             <br/>
             $($Diskinfo | ConvertTo-Html -Fragment)
             <br/>
-            Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
+            Time of Event: <font color="Red"><b>"""$((get-date))"""</b></font><br/>
             <br/>
             THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
@@ -54,7 +54,7 @@ Function Get-DCDiskspace {
 
             } # End ForEach
 
-            }
+      }
 
       end {}
 
