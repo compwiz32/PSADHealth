@@ -39,7 +39,7 @@ function Get-ADLastBackupDate {
         $LastBackup = @($RepOutput -split '\r?\n' -match $Regex)[0]
 
         #Compare the last backup date to today's date
-        $Result = (NEW-TIMESPAN –Start $LastBackup -End $CurrentDate).Days
+        $Result = (NEW-TIMESPAN -Start $LastBackup -End $CurrentDate).Days
             
         #Test if result is greater than max allowed days without backup
         If ($Result -gt $MaxDaysSinceBackup) {
