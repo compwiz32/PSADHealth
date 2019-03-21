@@ -45,10 +45,10 @@ function Test-ADServices {
                 if($s.status -eq "Stopped"){
 
 
-                    $Subject = "Windows Service $($Service.Displayname) is offline"
+                    $Subject = "Windows Service: $($s.Displayname), is stopped"
                     
                     $EmailBody = @"
-                                Server named <font color=Red><b>$Server</b></font> is offline!
+                                Service named <font color=Red><b>$s</b></font> is stopped!
                                 Time of Event: <font color=Red><b>"""$((get-date))"""</b></font><br/>
                                 <br/>
                                 THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
