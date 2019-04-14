@@ -4,8 +4,8 @@
 
 .NOTES
 Author: Greg Onstot
-Version: 0.2
-Version Date: 10/31/2018
+Version: 0.3
+Version Date: 04/14/2019
 
 The expectation is that you run these scripts on a separate Tier0 Tool server, to monitor your AD.  
 It must be a Tier0 systems as the service account monitoring AD should be in Domain Admin to perform a number of these tasks.
