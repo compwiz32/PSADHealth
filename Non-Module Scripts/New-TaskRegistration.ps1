@@ -43,15 +43,21 @@ $cred = Get-Credential -Credential DOMAIN\Serviceaccount
 #Set job options
 $opt = New-ScheduledJobOption -RunElevated -RequireNetwork 
 
-Register-ScheduledJob -Name Test-InternalTimeSync -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADTimeSync.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-Register-ScheduledJob -Name Test-ExternalTimeSync -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADTimeSyncToExternalNTP.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-Register-ScheduledJob -Name Test-ADLastBackup -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADLastBackupDate.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+#Register-ScheduledJob -Name Test-InternalTimeSync -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADTimeSync.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-InternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-InternalTimeSync}  -MaxResultCount 5 -scheduledjoboption $opt
+#Register-ScheduledJob -Name Test-ExternalTimeSync -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADTimeSyncToExternalNTP.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ExternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ExternalTimeSync}  -MaxResultCount 5 -scheduledjoboption $opt
+#Register-ScheduledJob -Name Test-ADLastBackup -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADLastBackupDate.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ADLastBackup -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADLastBackup}  -MaxResultCount 5 -scheduledjoboption $opt
 
 $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 1) -RepeatIndefinitely
-Register-ScheduledJob -Name Test-ADReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+#Register-ScheduledJob -Name Test-ADReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ADReplication  -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADReplication}  -MaxResultCount 5 -scheduledjoboption $opt
 
 $trigger = New-JobTrigger -Once -At 6:30AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
-Register-ScheduledJob -Name Test-ADObectReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADObjectReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+#Register-ScheduledJob -Name Test-ADObectReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADObjectReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ADObectReplication  -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADObectReplication}  -MaxResultCount 5 -scheduledjoboption $opt
 
 $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
-Register-ScheduledJob -Name Test-ADSYSVOLReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-SYSVOL-Replication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+#Register-ScheduledJob -Name Test-ADSYSVOLReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-SYSVOL-Replication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ADSYSVOLReplication  -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADSYSVOLReplication}  -MaxResultCount 5 -scheduledjoboption $opt
