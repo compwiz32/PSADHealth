@@ -19,16 +19,19 @@ function Set-PSADHealthConfig
     Param(
 
         [Parameter(Position=0)]
-        [ValidateScript({Test-Path $_ -Type Container})]
-        $PSADHealthConfigPath = "$env:HOMEPATH\ADConfig.json",
+        $PSADHealthConfigPath = "$(Split-Path $PSScriptRoot)\Config\ADConfig.json",
 
         [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [string]
         $SMTPServer = "mail.server.fqdn",
 
         [Parameter()]
+        [String]
+        $MailFrom,
+
+        [Parameter()]
         [String[]]
-        $Email,
+        $MailTo,
 
         [Parameter()]
         [String]
@@ -70,8 +73,11 @@ function Set-PSADHealthConfig
         'SMTPServer' {
             $config.smtpserver = $SMTPServer
          }
-        'Email' {
-            $config.email = $Email
+        'MailFrom' {
+            $config.MailFrom = $MailFrom
+        }
+        'MailTo' {
+            $config.MailTo = $MailTo
         }
         'MaxDaysSinceBackup' {
             $config.MaxDaysSinceBackup = $MaxDaysSinceBackup

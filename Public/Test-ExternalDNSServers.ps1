@@ -3,38 +3,48 @@ Function Test-ExternalDNSServers {
     [cmdletBinding()]
     Param()
 
-    begin {}
+    begin {
+        Import-Module ActiveDirectory
+        #Creates a global $configuration variable
+        $null = Get-ADConfig
+    }
 
     process {
-        $SMTPServer = 'smtp.bigfirm.biz'
-        $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
-        $MailTo = "michael_kanakos@bigfirm.biz"
         $DClist = (get-adgroupmember "Domain Controllers").name
-        $ExternalDNSServers = '208.67.222.222 ','208.67.220.220'
-
-        Import-Module ActiveDirectory
+        $ExternalDNSServers = $Configuration.ExternalDNSServers 
 
         ForEach ($server in $DClist){
 
             ForEach ($DNSServer in $ExternalDNSServers) {
                 
-            if  ((!(Invoke-Command -ComputerName $Server {Test-Connection -ComputerName $DNSServer -quiet -count 1})))
-                {
+            if  ((!(Invoke-Command -ComputerName $server -ScriptBlock { Test-Connection $args[0] -Quiet -Count 1} -ArgumentList $DNSServer)))
+            {
+                    
                     $Subject = "External DNS $DNSServer is unreachable"
                     $EmailBody = @"
         
         
-        A Test connection from <font color="Red"><b> $Server </b></font> to $DNSServer was unsuccessful!
-        Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
-        <br/>
-        THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
+                    A Test connection from <font color="Red"><b> $Server </b></font> to $DNSServer was unsuccessful!
+                    Time of Event: <font color="Red"><b> """$((get-date))"""</b></font><br/>
+                    <br/>
+                    THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
+         
+                    $mailParams = @{
+                        To = $Configuration.MailTo
+                        From = $Configuration.MailFrom
+                        SmtpServer = $Configuration.SmtpServer
+                        Subject = $Subject
+                        Body = $EmailBody
+                        BodyAsHtml = $true
+                    }
 
-            Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
-            -Subject $Subject -Body $EmailBody -BodyAsHtml
+                    Send-MailMessage @mailParams
 
                 } #End if
+            
             }# End Foreach (DCLIst)
+        
         } # End ForEach (ExternalDNSServers)
 
     }

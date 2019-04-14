@@ -1,19 +1,15 @@
-# Test-DCsOnline.ps1
 Function Test-DCsOnline {
-
-    [cmdletbinding()]
+    [cmdletBinding()]
     Param()
 
-    Begin {}
+    Begin {
+        Import-Module ActiveDirectory
+        #Creates a global $configuration variable
+        $null = Get-ADConfig
+    }
     
     Process {
-
-        $SMTPServer = 'smtp.bigfirm.biz'
-        $MailSender = "AD Health Check Monitor <ADHealthCheck@bigfirm.biz>"
-        $MailTo = "michael_kanakos@bigfirm.biz"
         $DClist = (get-adgroupmember "Domain Controllers").name
-
-        Import-Module ActiveDirectory
 
         ForEach ($server in $DClist){
 
@@ -29,8 +25,15 @@ Function Test-DCsOnline {
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
 
-            Send-MailMessage -To $MailTo -From $MailSender -SmtpServer $SMTPServer 
-            -Subject $Subject -Body $EmailBody -BodyAsHtml
+                $mailParams = @{
+                    To = $Configuration.MailTo
+                    From = $Configuration.MailFrom
+                    SmtpServer = $Configuration.SmtpServer
+                    Subject = $Subject
+                    Body = $EmailBody
+                    BodyAsHtml = $true
+                }
+                Send-MailMessage @mailParams
 
             } #End if
         }#End Foreach
