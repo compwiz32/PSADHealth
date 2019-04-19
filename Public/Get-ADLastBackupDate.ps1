@@ -16,8 +16,8 @@ function Get-ADLastBackupDate {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.6.2
-    Version Date: 04/18/2019
+    Version: 0.6.3
+    Version Date: 04/19/2019
     
     Event Source 'PSMonitor' will be created
 
@@ -57,9 +57,7 @@ function Get-ADLastBackupDate {
         $Result = (New-TimeSpan -Start $LastBackup -End $CurrentDate).Days
         
         Write-Verbose "Last Active Directory backup occurred on $LastBackup! $Result days is less than the alert criteria of $MaxDaysSinceBackup day."
-        
-        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17052 -EntryType Information -message "SUCCESS - Last Active Directory backup occurred on $LastBackup! $Result days is less than the alert criteria of $MaxDaysSinceBackup day." -category "17052"
-        
+                        
         #Test if result is greater than max allowed days without backup
         If ($Result -gt $MaxDaysSinceBackup) {
             
@@ -83,8 +81,10 @@ function Get-ADLastBackupDate {
           Send-MailMessage @mailParams
           #Write-Verbose "Sending Slack Alert"
           #New-SlackPost "Alert - AD Last Backup is $Result days old"
-
-        }#End if
+        }else {
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17052 -EntryType Information -message "SUCCESS - Last Active Directory backup occurred on $LastBackup! $Result days is less than the alert criteria of $MaxDaysSinceBackup day." -category "17052"
+        }#end else
+        
     
     }#End Process
     
