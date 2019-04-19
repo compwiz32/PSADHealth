@@ -16,8 +16,8 @@ function Test-ADReplication {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.6
-    Version Date: 11/19/2018
+    Version: 0.6.1
+    Version Date: 04/18/2018
 
     Event Source 'PSMonitor' will be created
 
@@ -39,12 +39,12 @@ function Test-ADReplication {
         }
         #$DClist = (Get-ADGroupMember -Identity 'Domain Controllers').name  #For RWDCs only, RODCs are not in this group.
         $DClist = (Get-ADDomainController -Filter *).name  # For ALL DCs
-        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17021 -EntryType Information -message "START of Test Cycle ." -category "17021"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17021 -EntryType Information -message "START AD Replication Test Cycle ." -category "17021"
     }#End Begin
 
     Process {
         Foreach ($server in $DClist) {
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17022 -EntryType Information -message "CHECKING Server - $server" -category "17022"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17022 -EntryType Information -message "CHECKING AD Replication - Server - $server" -category "17022"
             Write-Verbose "TESTING - $server"
             $OutputDetails = $null
             $Result = (Get-ADReplicationFailure -Target $server).failurecount
@@ -58,7 +58,7 @@ function Test-ADReplication {
             If ($result -ne $null -and $Result -gt 1) {
                 $OutputDetails = "ServerName: `r`n  $name `r`n FailureCount: $errcount  `r`n `r`n    FirstFailureTime: `r`n $Fail  `r`n `r`n Error with Partner: `r`n $Partner  `r`n `r`n -  See the following support article $SupportArticle"
                 Write-Verbose "Failure - $OutputDetails"
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Warning -message "FAILURE on $server  -  $OutputDetails ." -category "17020"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Warning -message "FAILURE AD Replicaion on $server  -  $OutputDetails ." -category "17020"
                 $global:CurrentFailure = $true
                 Send-Mail $OutputDetails
             } #End if
@@ -67,7 +67,7 @@ function Test-ADReplication {
 
     
     End {
-        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17023 -EntryType Information -message "END of Test Cycle ." -category "17023"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17023 -EntryType Information -message "END of AD Replication Test Cycle ." -category "17023"
         If (!$CurrentFailure){
             Write-Verbose "No Issues found in this run"
             $InError = Get-EventLog application -After (Get-Date).AddHours(-1) | where {($_.InstanceID -Match "17020")} 
