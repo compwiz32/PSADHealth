@@ -83,6 +83,8 @@ function Test-ADExternalTimeSync {
             }
 
             Send-MailMessage @mailParams
+            Write-Verbose "Sending Slack Alert"
+            New-SlackPost "Alert - External Time drift above max threashold - $emailOutput"
 
         }#end if
         If (!$CurrentFailure) {
@@ -109,6 +111,7 @@ function Test-ADExternalTimeSync {
                 
                 Send-MailMessage @alertParams
                 Write-Verbose "Sending Slack Message - Alert Cleared"
+                New-SlackPost "The previous alert, for AD External Time Sync, has cleared."
             
             }#End if
        
