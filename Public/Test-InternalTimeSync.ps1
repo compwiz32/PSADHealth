@@ -90,7 +90,7 @@ function Test-ADInternalTimeSync {
                 CurrentFailure = $true
                 Send-Mail $emailOutput
                 Write-Verbose "Sending Slack Alert"
-                New-SlackPost "Alert - Time drift above max threashold - $emailOutput"
+                New-SlackPost "Alert - Internal Time drift above max threashold - $emailOutput"
             }#end if
             If (!$CurrentFailure) {
                 Write-Verbose "No Issues found in this run"
