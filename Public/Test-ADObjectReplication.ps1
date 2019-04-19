@@ -96,7 +96,7 @@ function Test-ADObjectReplication {
             Start-Sleep 60
             $replicated = $true
             Write-Verbose "Cycle - $i"
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17011 -EntryType Information -message "CHECKIN AD Object Replication ADRepl Cycle $i" -category "17011"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17011 -EntryType Information -message "CHECKING AD Object Replication ADRepl Cycle $i" -category "17011"
         
             Foreach ($dc in $DCs) {
                 $site = (Get-ADDomainController $dc).site
