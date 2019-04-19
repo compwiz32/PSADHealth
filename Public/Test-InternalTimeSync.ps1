@@ -16,7 +16,7 @@ function Test-ADInternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.8.1
+    Version: 0.8.2
     Version Date: 4/18/2019
     
     Event Source 'PSMonitor' will be created
