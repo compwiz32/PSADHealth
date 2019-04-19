@@ -17,7 +17,7 @@ function Test-ADReplication {
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
     Version: 0.6.1
-    Version Date: 04/18/2018
+    Version Date: 04/18/2019
 
     Event Source 'PSMonitor' will be created
 
