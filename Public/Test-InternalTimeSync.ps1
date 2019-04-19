@@ -16,8 +16,8 @@ function Test-ADInternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.8
-    Version Date: 2/08/2019
+    Version: 0.8.1
+    Version Date: 4/18/2019
     
     Event Source 'PSMonitor' will be created
 
@@ -86,7 +86,7 @@ function Test-ADInternalTimeSync {
                     
                 #attempt to automatically fix the issue
                 Invoke-Command -ComputerName $server -ScriptBlock { 'w32tm /resync' }
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17035 -EntryType Information -message "Remediation script repair was attempted `r`n " -category "17035"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17035 -EntryType Information -message "REPAIR Remediation script was attempted `r`n " -category "17035"
                 CurrentFailure = $true
                 Send-Mail $emailOutput
                 Write-Verbose "Sending Slack Alert"
