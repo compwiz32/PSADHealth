@@ -16,7 +16,7 @@ function Get-ADLastBackupDate {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.6.1
+    Version: 0.6.2
     Version Date: 04/18/2019
     
     Event Source 'PSMonitor' will be created
@@ -81,6 +81,8 @@ function Get-ADLastBackupDate {
           }
 
           Send-MailMessage @mailParams
+          #Write-Verbose "Sending Slack Alert"
+          #New-SlackPost "Alert - AD Last Backup is $Result days old"
 
         }#End if
     
@@ -108,6 +110,8 @@ function Get-ADLastBackupDate {
               }
     
               Send-MailMessage @alertclearedParams
+              #Write-Verbose "Sending Slack Message - AD Backup Alert Cleared"
+              #New-SlackPost "The previous alert, for AD Last Backup has cleared."
                 #Write-Output $InError
             }#End if
         

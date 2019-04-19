@@ -17,7 +17,7 @@ function Test-ADObjectReplication {
    
     .NOTES
     Author Greg Onstot
-    Version: 0.6.2
+    Version: 0.6.3
     Version Date: 04/18/2019
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
@@ -64,6 +64,8 @@ function Test-ADObjectReplication {
             If ($existingObj){
                 Write-Verbose "Warning - Cleanup of a old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj  - Please review, and cleanup if required."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17019 -EntryType Warning -message "WARNING - AD Object Replication Cleanup of old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj.  Please review, and cleanup if required." -category "17019"
+                #Write-Verbose "Sending Slack Alert"
+                #New-SlackPost "Alert - Cleanup of a old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj  - Please review, and cleanup if required."
             }
 
             $site = (Get-ADDomainController $SourceSystem).site
@@ -82,6 +84,8 @@ function Test-ADObjectReplication {
             $Alert = "In $domainname Failed to connect to PDCE - $dc in site - $site.  Test stopping!  See the following support article $SupportArticle"
             $CurrentFailure = $true
             Send-Mail $Alert
+            #Write-Verbose "Sending Slack Alert"
+            #New-SlackPost "Alert - PDCE is Offline in $domainname, AD Object Replication test has exited."
             Exit
         }
 
@@ -110,6 +114,8 @@ function Test-ADObjectReplication {
                         $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.  See the following support article $SupportArticle"
                         #If we get a failure on the 10th run, send an email for additional visibility, but not spam on every pass if a server or site is offline.
                         Send-Mail $Alert
+                        #Write-Verbose "Sending Slack Alert"
+                        #New-SlackPost "Alert - In $domainname Failed to connect to DC - $dc in site - $site."
                     }
                     
                 }
@@ -158,6 +164,8 @@ function Test-ADObjectReplication {
                 "
                 $CurrentFailure = $true
                 Send-Mail $Alert
+                #Write-Verbose "Sending Slack Alert"
+                #$New-SlackPost "Alert - In $domainname - the AD Object Replication Test cycle has run $i times without the object succesfully replicating to all DCs."                        
             } 
         }
     }
@@ -189,6 +197,8 @@ function Test-ADObjectReplication {
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
                 Send-AlertCleared
+                #Write-Verbose "Sending Slack Message - Alert Cleared"
+                #New-SlackPost "The previous alert, for AD Object Replication, has cleared."
                 #Write-Output $InError
             }#End if
         }#End if
