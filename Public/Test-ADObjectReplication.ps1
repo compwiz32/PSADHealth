@@ -17,8 +17,8 @@ function Test-ADObjectReplication {
    
     .NOTES
     Author Greg Onstot
-    Version: 0.6.1
-    Version Date: 1/07/2019
+    Version: 0.6.2
+    Version Date: 04/18/2019
 
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
 
@@ -63,7 +63,7 @@ function Test-ADObjectReplication {
             $existingObj = Get-ADComputer -filter 'name -like "ADRT-*"' -prop * -SearchBase "$tempObjectPath" |Select-Object -ExpandProperty Name
             If ($existingObj){
                 Write-Verbose "Warning - Cleanup of a old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj  - Please review, and cleanup if required."
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17019 -EntryType Warning -message "Warning - Cleanup of old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj.  Please review, and cleanup if required." -category "17019"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17019 -EntryType Warning -message "WARNING - AD Object Replication Cleanup of old object(s) may not have occured.  Object(s) starting with 'ADRT-' exists in $tempObjectPath : $existingObj.  Please review, and cleanup if required." -category "17019"
             }
 
             $site = (Get-ADDomainController $SourceSystem).site
@@ -73,12 +73,12 @@ function Test-ADObjectReplication {
             New-ADComputer -Name "$tempObjectName" -samAccountName "$tempObjectName" -Path "$tempObjectPath" -Server $SourceSystem -Enabled $False
             
             Write-Verbose "Object created for tracking - $tempObjectName in $site"
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17016 -EntryType Information -message "Test object - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17016"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17016 -EntryType Information -message "CREATED AD Object Replication Test object - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17016"
             $i = 0
         }
         else {
             Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17010"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE AD Object Replication - Failed to connect to PDCE - $SourceSystem  in site - $site" -category "17010"
             $Alert = "In $domainname Failed to connect to PDCE - $dc in site - $site.  Test stopping!  See the following support article $SupportArticle"
             $CurrentFailure = $true
             Send-Mail $Alert
@@ -88,11 +88,11 @@ function Test-ADObjectReplication {
         While ($continue) {
             $i++
             Write-Verbose 'Sleeping for 1 minute.'
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17018 -EntryType Information -message "Sleeping for 1 minute" -category "17018"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17018 -EntryType Information -message "SLEEPING AD Object Replication  for 1 minute" -category "17018"
             Start-Sleep 60
             $replicated = $true
             Write-Verbose "Cycle - $i"
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17011 -EntryType Information -message "ADRepl Cycle $i" -category "17011"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17011 -EntryType Information -message "CHECKIN AD Object Replication ADRepl Cycle $i" -category "17011"
         
             Foreach ($dc in $DCs) {
                 $site = (Get-ADDomainController $dc).site
@@ -103,7 +103,7 @@ function Test-ADObjectReplication {
                 else {
                     Write-Verbose "!!!!!OFFLINE - $dc !!!!!"
                     $connectionResult = "FAILURE"
-                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "Failed to connect to DC - $dc in site - $site" -category "17010"
+                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE AD Object Replication failed to connect to DC - $dc in site - $site" -category "17010"
                     
                     $CurrentFailure = $true
                     if ($i -eq 10){
@@ -118,12 +118,12 @@ function Test-ADObjectReplication {
                 If ($connectionResult -eq "SUCCESS") {
                     Try {	
                         $Milliseconds = (Measure-Command {$Query = Get-ADComputer $tempObjectName -Server $dc | select Name}).TotalMilliseconds
-                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17013 -EntryType information -message "SUCCESS! - Test object replicated to - $dc in site - $site - in $Milliseconds ms. " -category "17013"
+                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17013 -EntryType information -message "SUCCESS AD Object Replication Test object replicated to - $dc in site - $site - in $Milliseconds ms. " -category "17013"
                         write-Verbose "SUCCESS! - Replicated -  $($query.Name) - $($dc) - $site - $Milliseconds"
                     }
                     Catch {
                         write-Verbose "PENDING! - Test object $tempObjectName does not exist on $dc in $site."
-                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17012 -EntryType information -message "PENDING! - Test object pending replication to - $dc in site - $site. " -category "17012"
+                        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17012 -EntryType information -message "PENDING AD Object Replication Test object pending replication to - $dc in site - $site. " -category "17012"
                         $replicated = $false
                     }    
                 }
@@ -131,7 +131,7 @@ function Test-ADObjectReplication {
                 # If The Connection To The DC Is Unsuccessful
                 If ($connectionResult -eq "FAILURE") {
                     Write-Verbose "     - Unable To Connect To DC/GC And Check For The Temp Object..."
-                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE! - Failed to connect to DC - $dc in site - $site" -category "17010"
+                    Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17010 -EntryType Error -message "FAILURE AD Object Replication failed to connect to DC - $dc in site - $site" -category "17010"
                     $Alert = "In $domainname Failed to connect to DC - $dc in site - $site.   See the following support article $SupportArticle"
                     $CurrentFailure = $true
                     Send-Mail $Alert
@@ -148,9 +148,9 @@ function Test-ADObjectReplication {
                 $list = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17012") -OR ($_.InstanceID -Match "17013") -OR ($_.InstanceID -Match "17016")} 
                 $RelevantEvents = $list |Select InstanceID,Message |Out-String
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "TIMEOUT! - Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17014 -EntryType Warning -message "INCOMPLETE AD Object Replication Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17014"
                 
-                $Alert = "In $domainname - the AD Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  
+                $Alert = "In $domainname - the AD Object Replication Test cycle has run $i times without the object succesfully replicating to all DCs.  
                 Please see the following support article $SupportArticle to help investigate
                 
                 Recent history:
@@ -179,7 +179,7 @@ function Test-ADObjectReplication {
         Write-Verbose "  Deleting AD Object File..."
         Remove-ADComputer $tempObjectName -Confirm:$False
         Write-Verbose "  AD Object [$tempObjectName] Has Been Deleted."
-        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17017 -EntryType Information -message "Test object - $tempObjectName  - has been deleted." -category "17017"
+        Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17017 -EntryType Information -message "DELETED AD Object Replication test object - $tempObjectName  - has been deleted." -category "17017"
 
         If (!$CurrentFailure){
             Write-Verbose "No Issues found in this run"
