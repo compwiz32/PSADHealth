@@ -16,8 +16,8 @@ function Test-ADExternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.7
-    Version Date: 2/15/2019
+    Version: 0.7.1
+    Version Date: 4/18/2019
         
     Event Source 'PSMonitor' will be created
 
@@ -69,7 +69,7 @@ function Test-ADExternalTimeSync {
             
             #attempt to automatically fix the issue
             Invoke-Command -ComputerName $server -ScriptBlock { 'w32tm /resync' }
-            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17045 -EntryType Information -message "Remediation script repair was attempted `r`n " -category "17045"
+            Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17045 -EntryType Information -message "REPAIR External Time Sync Remediation was attempted `r`n " -category "17045"
             $CurrentFailure = $true
             
             
