@@ -82,11 +82,11 @@ function Test-ADInternalTimeSync {
             If ($result -gt $MaxTimeDrift) {
                 $emailOutput = "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime `r`n "
                 Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Warning -message "FAILURE time drift above maximum allowed on $emailOutput `r`n " -category "17030"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Warning -message "FAILURE Internal time drift above maximum allowed on $emailOutput `r`n " -category "17030"
                     
                 #attempt to automatically fix the issue
                 Invoke-Command -ComputerName $server -ScriptBlock { 'w32tm /resync' }
-                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17035 -EntryType Information -message "REPAIR Remediation script was attempted `r`n " -category "17035"
+                Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17035 -EntryType Information -message "REPAIR Internal Time Sync remediation was attempted `r`n " -category "17035"
                 CurrentFailure = $true
                 Send-Mail $emailOutput
                 Write-Verbose "Sending Slack Alert"
