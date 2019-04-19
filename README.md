@@ -1,7 +1,8 @@
 # PSADHealth
 
-Table of Contents
+## Table of Contents
 - [PSADHealth](#psadhealth)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Wiki](#wiki)
   - [Contributions](#contributions)
