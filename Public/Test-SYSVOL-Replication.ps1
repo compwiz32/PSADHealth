@@ -25,7 +25,7 @@ function Test-SysvolReplication {
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
-    Version: 0.6.4
+    Version: 0.6.5
     Version Date: 4/18/2019
     
     Event Source 'PSMonitor' will be created
@@ -82,6 +82,8 @@ function Test-SysvolReplication {
             If (!(Test-Path -Path $objectPath)){
                 Write-Verbose "Object wasn't created properly after 2 tries, exiting..."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "FAILURE to write SYSVOL test object to PDCE - $SourceSystem  in site - $site" -category "17000"
+                #Write-Verbose "Sending Slack Alert"
+                #New-SlackPost "Alert - FAILURE to write SYSVOL test object to PDCE - $SourceSystem  in site - $site"
                 Exit
             }
             
@@ -91,6 +93,8 @@ function Test-SysvolReplication {
         else {
             Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "FAILURE to connect to PDCE - $SourceSystem  in site - $site" -category "17000"
+            #Write-Verbose "Sending Slack Alert"
+            #New-SlackPost "Alert - FAILURE to connect to PDCE - $SourceSystem  in site - $site"
             Exit
         }
         
@@ -156,6 +160,8 @@ function Test-SysvolReplication {
                 "
                 $CurrentFailure = $true
                 Send-Mail $Alert
+                #Write-Verbose "Sending Slack Alert"
+                #New-SlackPost "Alert - Incomplete SYSVOL Replication Cycle in the domain: $domainname"
             } 
         }	
     }
@@ -187,6 +193,8 @@ function Test-SysvolReplication {
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
                 Send-AlertCleared
+                #Write-Verbose "Sending Slack Message - Alert Cleared"
+                #New-SlackPost "The previous alert, for AD SYSVOL Replication, has cleared."
                 #Write-Output $InError
             }#End if
         }#End if
