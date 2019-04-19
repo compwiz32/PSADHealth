@@ -16,7 +16,7 @@ function Test-ADReplication {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.6.1
+    Version: 0.6.2
     Version Date: 04/18/2019
 
     Event Source 'PSMonitor' will be created
@@ -61,6 +61,8 @@ function Test-ADReplication {
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17020 -EntryType Warning -message "FAILURE AD Replicaion on $server  -  $OutputDetails ." -category "17020"
                 $global:CurrentFailure = $true
                 Send-Mail $OutputDetails
+                #Write-Verbose "Sending Slack Alert"
+                #New-SlackPost "Alert - FAILURE AD Replicaion on $server  -  $OutputDetails ."
             } #End if
         }#End Foreach
     }#End Process
@@ -76,6 +78,8 @@ function Test-ADReplication {
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
                 Send-AlertCleared
+                #Write-Verbose "Sending Slack Message - Alert Cleared"
+                #New-SlackPost "The previous alert, for AD Replication, has cleared."
                 #Write-Output $InError
             }#End if
         }#End if
