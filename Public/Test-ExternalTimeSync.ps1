@@ -16,7 +16,7 @@ function Test-ADExternalTimeSync {
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
-    Version: 0.7.1
+    Version: 0.7.2
     Version Date: 4/18/2019
         
     Event Source 'PSMonitor' will be created
@@ -83,8 +83,8 @@ function Test-ADExternalTimeSync {
             }
 
             Send-MailMessage @mailParams
-            Write-Verbose "Sending Slack Alert"
-            New-SlackPost "Alert - External Time drift above max threashold - $emailOutput"
+            #Write-Verbose "Sending Slack Alert"
+            #New-SlackPost "Alert - External Time drift above max threashold - $emailOutput"
 
         }#end if
         If (!$CurrentFailure) {
@@ -110,8 +110,8 @@ function Test-ADExternalTimeSync {
                 }
                 
                 Send-MailMessage @alertParams
-                Write-Verbose "Sending Slack Message - Alert Cleared"
-                New-SlackPost "The previous alert, for AD External Time Sync, has cleared."
+                #Write-Verbose "Sending Slack Message - Alert Cleared"
+                #New-SlackPost "The previous alert, for AD External Time Sync, has cleared."
             
             }#End if
        
