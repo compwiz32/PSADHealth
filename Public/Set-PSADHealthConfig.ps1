@@ -12,6 +12,15 @@ function Set-PSADHealthConfig
 
         The smtp server this module will use for reports.
 
+        .EXAMPLE
+        Set-PSADHealthConfig -SMTPServer email.company.com
+
+        .EXAMPLE
+        Set-PSADHealthConfig -MailFrom admonitor@foobar.come -MailTo directoryadmins@foobar.com
+
+        .EXAMPLE
+        Set-PSADHealthConfig -MaxDaysSinceBackup 12
+
 
     #>
 
