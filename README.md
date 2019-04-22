@@ -5,7 +5,7 @@ This project is a toolkit of AD specific health checks that you can run in your 
 
 ## Wiki
 
-Please visit the [WIKI](https://github.com/compwiz32/PSADHealth/wiki) page for more information about this module. The [WIKI](https://github.com/compwiz32/PSADHealth/wiki) is a complete knowledge base of the module; including recommended configurations and history of this this project.
+Please visit the [WIKI](https://github.com/compwiz32/PSADHealth/wiki) page for more information about this module. The [WIKI](https://github.com/compwiz32/PSADHealth/wiki) is a complete knowledge base of the module; including recommended configurations and history of this project.
 
 ## Contributions
 
