@@ -13,6 +13,7 @@ function Get-ADConfig {
 
     #>
     [cmdletBinding()]
+    [Alias('Get-ADHealthConfig')]
     Param(
         [Parameter(Position=0)]
         [ValidateScript({ Test-Path $_})]
