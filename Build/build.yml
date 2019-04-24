@@ -61,7 +61,7 @@ jobs:
 
   - task: PowerShell@2
     condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
-    displayName: 'Publish PSGrafana To PSGallery'
+    displayName: 'Publish PSADHealth To PSGallery'
     inputs:
         targetType: Inline
         script: .\Build\build.ps1 -Deploy
