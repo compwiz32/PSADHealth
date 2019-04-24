@@ -76,7 +76,6 @@ if ($Compile.IsPresent) {
     (Get-Module PSADHealth)[0].ReleaseNotes | Add-Content .\Build\release-notes.txt
     (Get-Module PSADHealth)[0].Version.ToString() | Add-Content .\Build\release-version.txt
 
-    Get-Content -Path .\Build\PSADHealth-Template.psm1 | Add-Content .\PSADHealth\PSADHealth.psm1
 }
 
 # Test step
