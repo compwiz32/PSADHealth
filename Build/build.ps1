@@ -76,7 +76,6 @@ if ($Compile.IsPresent) {
     (Get-Module PSADHealth)[0].ReleaseNotes | Add-Content .\Build\release-notes.txt
     (Get-Module PSADHealth)[0].Version.ToString() | Add-Content .\Build\release-version.txt
 
-    Get-Content -Path .\Build\PSADHealth-Template.psm1 | Add-Content .\PSADHealth\PSADHealth.psm1
 }
 
 # Test step
@@ -102,24 +101,6 @@ if($Test.IsPresent) {
 
 #Deploy step
 if($Deploy.IsPresent) {
-
-    [version]$currentVersion = Get-Content  .\Build\release-version.txt
-
-    Write-Host $currentVersion
-
-    if($currentVersion.Minor -eq 1 -and $currentVersion.Build -eq 0) {
-
-        $newVersion = "0.1.1"
-        Update-ModuleManifest -Path .\PSADHealth\PSADHealth.psd1 -ModuleVersion $([version]$newVersion)
-
-    }
-    
-    else {
-    
-        $newVersion = $currentVersion.Build + 1
-        Update-ModuleManifest -Path .\PSADHealth\PSADHealth.psd1 -ModuleVersion $([version]"0.1.$newVersion")
-
-    }    
 
     Try {
         $Splat = @{
