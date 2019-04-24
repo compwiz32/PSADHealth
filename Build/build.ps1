@@ -103,24 +103,6 @@ if($Test.IsPresent) {
 #Deploy step
 if($Deploy.IsPresent) {
 
-    [version]$currentVersion = Get-Content  .\Build\release-version.txt
-
-    Write-Host $currentVersion
-
-    if($currentVersion.Minor -eq 1 -and $currentVersion.Build -eq 0) {
-
-        $newVersion = "0.1.1"
-        Update-ModuleManifest -Path .\PSADHealth\PSADHealth.psd1 -ModuleVersion $([version]$newVersion)
-
-    }
-    
-    else {
-    
-        $newVersion = $currentVersion.Build + 1
-        Update-ModuleManifest -Path .\PSADHealth\PSADHealth.psd1 -ModuleVersion $([version]"0.1.$newVersion")
-
-    }    
-
     Try {
         $Splat = @{
             Path        = (Resolve-Path -Path .\PSADHealth)
