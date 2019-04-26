@@ -44,11 +44,11 @@ $cred = Get-Credential -Credential DOMAIN\Serviceaccount
 $opt = New-ScheduledJobOption -RunElevated -RequireNetwork 
 
 #Register-ScheduledJob -Name Test-InternalTimeSync -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADTimeSync.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-Register-ScheduledJob -name Test-InternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-InternalTimeSync}  -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ADInternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADInternalTimeSync}  -MaxResultCount 5 -scheduledjoboption $opt
 #Register-ScheduledJob -Name Test-ExternalTimeSync -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADTimeSyncToExternalNTP.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-Register-ScheduledJob -name Test-ExternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ExternalTimeSync}  -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-ADExternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADExternalTimeSync}  -MaxResultCount 5 -scheduledjoboption $opt
 #Register-ScheduledJob -Name Test-ADLastBackup -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADLastBackupDate.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-Register-ScheduledJob -name Test-ADLastBackup -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADLastBackup}  -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Get-ADLastBackup -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Get-ADLastBackup}  -MaxResultCount 5 -scheduledjoboption $opt
 
 $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 1) -RepeatIndefinitely
 #Register-ScheduledJob -Name Test-ADReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-ADReplication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
