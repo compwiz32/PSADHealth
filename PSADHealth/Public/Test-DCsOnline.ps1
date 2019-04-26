@@ -13,7 +13,7 @@ Function Test-DCsOnline {
 
         ForEach ($server in $DClist){
 
-            if  ((!(Test-Connection -ComputerName $Server -quiet -count 1)))
+            if  ((!(Test-Connection -ComputerName $Server -quiet -count 4)))
             {
                 $Subject = "Server $Server is offline"
                 $EmailBody = @"

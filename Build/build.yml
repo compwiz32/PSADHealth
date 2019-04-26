@@ -1,0 +1,70 @@
+trigger:
+  branches:
+    include:
+      - master
+    exclude:
+      - develop
+pr:
+  branches:
+    include:
+     - master
+     
+
+jobs:
+- job: PrepPSADHealth
+  displayName: 'Prep PSADHealth'
+  pool:
+    vmImage: 'VS2017-Win2016'
+
+  steps:
+  - task: PowerShell@2
+    displayName: 'Run tests (individual .ps1 files)'
+    inputs:
+      targetType: Inline
+      script: .\Build\build.ps1 -Bootstrap -Test
+      condition: succeededOrFailed()
+
+  - task: PowerShell@2
+    displayName: 'Compile module'
+    inputs:
+      targetType: Inline
+      script: .\Build\build.ps1 -Compile
+      condition: succeededOrFailed()
+
+  - task: PowerShell@2
+    displayName: 'Run tests (compiled .psm1)'
+    inputs:
+      targetType: Inline
+      script: .\Build\build.ps1 -Test
+      condition: succeededOrFailed()
+
+  - task: PublishTestResults@2
+    displayName: 'Publish test results'
+    inputs:
+      testRunner: NUnit
+      testResultsFiles: '**\TestResults.xml'
+    condition: succeededOrFailed()
+
+  - task: PublishPipelineArtifact@0
+    displayName: 'Publish compiled module artifact'
+    inputs:
+      artifactName: 'PSADHealth'
+      targetPath: .\PSADHealth
+    condition: succeededOrFailed()
+
+  - task: PublishPipelineArtifact@0
+    displayName: 'Publish Pipelines scripts as artifact'
+    inputs:
+      artifactName: 'PipelinesScripts'
+      targetPath: .\Build
+    condition: succeededOrFailed()
+
+  - task: PowerShell@2
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+    displayName: 'Publish PSADHealth To PSGallery'
+    inputs:
+        targetType: Inline
+        script: .\Build\build.ps1 -Deploy
+        condition: succeeded()
+    env:
+      NugetAPIKey: $(NugetAPIKey)

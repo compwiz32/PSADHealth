@@ -9,5 +9,6 @@
     "MaxObjectReplCycles":"50",
     "MaxSysvolReplCycles":"50",
     "SupportArticle":"https://<YourServer/YourTroubleshootingArticles>",
-    "SlackToken":"<YourSlackAPIToken>"
+    "SlackToken":"<YourSlackAPIToken>",
+    "TeamsUri":"https://teams.microsoft.com"
   }
