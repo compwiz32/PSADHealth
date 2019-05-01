@@ -28,7 +28,7 @@ function Set-PSADHealthConfig
     Param(
 
         [Parameter(Position=0)]
-        $PSADHealthConfigPath = "$(Split-Path $PSScriptRoot)\Config\ADConfig.json",
+        $PSADHealthConfigPath = "$($PSScriptRoot)\Config\ADConfig.json",
 
         [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [string]

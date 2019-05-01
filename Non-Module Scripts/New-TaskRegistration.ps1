@@ -4,8 +4,8 @@
 
 .NOTES
 Author: Greg Onstot
-Version: 0.3
-Version Date: 04/14/2019
+Version: 0.4
+Version Date: 04/26/2019
 
 The expectation is that you run these scripts on a separate Tier0 Tool server, to monitor your AD.  
 It must be a Tier0 systems as the service account monitoring AD should be in Domain Admin to perform a number of these tasks.
@@ -60,4 +60,4 @@ Register-ScheduledJob -name Test-ADObectReplication  -Trigger $trigger -Credenti
 
 $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
 #Register-ScheduledJob -Name Test-ADSYSVOLReplication -Trigger $trigger -Credential $cred -FilePath "C:\Scripts\Test-SYSVOL-Replication.ps1" -MaxResultCount 5 -scheduledjoboption $opt
-Register-ScheduledJob -name Test-ADSYSVOLReplication  -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-ADSYSVOLReplication}  -MaxResultCount 5 -scheduledjoboption $opt
+Register-ScheduledJob -name Test-SYSVOLReplication  -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -name PSADHealth) ; Test-SYSVOLReplication}  -MaxResultCount 5 -scheduledjoboption $opt
