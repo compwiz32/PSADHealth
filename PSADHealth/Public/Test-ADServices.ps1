@@ -48,7 +48,7 @@ function Test-ADServices {
                     $Subject = "Windows Service: $($s.Displayname), is stopped"
                     
                     $EmailBody = @"
-                                Service named <font color=Red><b>$s</b></font> is stopped!
+                                Service named <font color=Red><b>$($s.Displayname)</b></font> is stopped!
                                 Time of Event: <font color=Red><b>"""$((get-date))"""</b></font><br/>
                                 <br/>
                                 THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
