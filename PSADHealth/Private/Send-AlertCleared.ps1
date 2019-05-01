@@ -11,7 +11,7 @@ function Send-AlertCleared {
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($Configuration.Email).Count
+    $emailCount = ($Configuration.MailTo).Count
     If ($emailCount -gt 0){
         $Emails = $Configuration.MailTo
         foreach ($target in $Emails){
