@@ -1,5 +1,9 @@
 function Send-Mail {
     Param($emailOutput)
+    
+    begin { $null = Get-ADConfig }
+    
+    process {
     Write-Verbose "Sending Email"
     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17034 -EntryType Information -message "ALERT Email Sent" -category "17034"
     Write-Verbose "Output is --  $emailOutput"
@@ -38,4 +42,7 @@ function Send-Mail {
 
     #Send it
     $smtp.Send($msg)
+
+    }
+    
 }
