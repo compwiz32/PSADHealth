@@ -20,7 +20,7 @@ function Test-ADServices {
                         'EventSystem',
                         'KDC',
                         'LanManWorkstation',
-                        'LanManWorkstation',
+                        'LanManServer',
                         'NetLogon',
                         'NTDS',
                         'RPCSS',

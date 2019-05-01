@@ -12,10 +12,10 @@ function Send-Mail {
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($Configuration.Email).Count
+    $emailCount = ($Configuration.MailTo).Count
 
     If ($emailCount -gt 0){
-        $Emails = $Configuration.Email
+        $Emails = $Configuration.MailTo
         foreach ($target in $Emails){
         Write-Verbose "email will be sent to $target"
         $msg.To.Add("$target")
@@ -28,8 +28,8 @@ function Send-Mail {
     }
     
     #Message:
-    $msg.From = "ADInternalTimeSync-$NBN@$Domain"
-    $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.From = $Configuration.MailFrom
+    $msg.ReplyTo = $Configuration.MailFrom
     $msg.subject = "$NBN AD Internal Time Sync Alert!"
     $msg.body = @"
         Time of Event: $((get-date))`r`n $emailOutput

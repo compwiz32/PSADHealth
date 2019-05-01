@@ -11,9 +11,9 @@ function Send-AlertCleared {
     $msg = new-object Net.Mail.MailMessage
 
     #Send to list:    
-    $emailCount = ($Configuration.Email).Count
+    $emailCount = ($Configuration.MailTo).Count
     If ($emailCount -gt 0){
-        $Emails = $Configuration.Email
+        $Emails = $Configuration.MailTo
         foreach ($target in $Emails){
         Write-Verbose "email will be sent to $target"
         $msg.To.Add("$target")
@@ -24,8 +24,8 @@ function Send-AlertCleared {
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Error -message "ALERT - No email addresses defined.  Alert email can't be sent!" -category "17030"
     }
     #Message:
-    $msg.From = "ADInternalTimeSync-$NBN@$Domain"
-    $msg.ReplyTo = "ADInternalTimeSync-$NBN@$Domain"
+    $msg.From = $Configuration.MailFrom
+    $msg.ReplyTo = $Configuration.MailFrom
     $msg.subject = "$NBN AD Internal Time Sync - Alert Cleared!"
     $msg.body = @"
         The previous Internal AD Time Sync alert has now cleared.
