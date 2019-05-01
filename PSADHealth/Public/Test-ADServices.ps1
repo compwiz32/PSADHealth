@@ -45,7 +45,7 @@ function Test-ADServices {
                 if($s.status -eq "Stopped"){
 
 
-                    $Subject = "Windows Service: $($s.Displayname), is stopped"
+                    $Subject = "Windows Service: $($s.Displayname), is stopped on $server "
                     
                     $EmailBody = @"
                                 Service named <font color=Red><b>$($s.Displayname)</b></font> is stopped!
