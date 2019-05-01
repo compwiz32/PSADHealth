@@ -1,5 +1,7 @@
 function Send-AlertCleared {
     Param($InError)
+    
+    begin { $null = Get-ADConfig } 
     Write-Verbose "Sending Email"
     Write-Verbose "Output is --  $InError"
     
