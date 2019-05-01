@@ -1,5 +1,11 @@
 function Send-Mail {
-    Param($emailOutput)
+    [cmdletBinding()]
+    Param(
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [String]
+        $emailOutput
+    )
+    
     Write-Verbose "Sending Email"
     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17034 -EntryType Information -message "ALERT Email Sent" -category "17034"
     Write-Verbose "Output is --  $emailOutput"
@@ -7,9 +13,7 @@ function Send-Mail {
     #Mail Server Config
     $NBN = (Get-ADDomain).NetBIOSName
     $Domain = (Get-ADDomain).DNSRoot
-    $smtpServer = $Configuration.SMTPServer
-    $smtp = new-object Net.Mail.SmtpClient($smtpServer)
-    $msg = new-object Net.Mail.MailMessage
+  
 
     #Send to list:    
     $emailCount = ($Configuration.MailTo).Count
@@ -28,14 +32,21 @@ function Send-Mail {
     }
     
     #Message:
-    $msg.From = $Configuration.MailFrom
-    $msg.ReplyTo = $Configuration.MailFrom
-    $msg.subject = "$NBN AD Internal Time Sync Alert!"
-    $msg.body = @"
+    $mail = @{
+
+        To = $Configuration.MailTo
+        From = $Configuration.MailFrom
+        ReplyTo = $Configuration.MailFrom
+        SMTPServer = $Configuration.SMTPServer
+        Subject = "$NBN AD Internal Time Sync Alert!"
+        Body = @"
         Time of Event: $((get-date))`r`n $emailOutput
         See the following support article $SupportArticle
 "@
+        BodyAsHtml = $true
 
-    #Send it
-    $smtp.Send($msg)
+    }
+
+    Send-MailMessage @mail
+   
 }
