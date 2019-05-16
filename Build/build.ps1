@@ -60,10 +60,7 @@ if ($Compile.IsPresent) {
     $Public | Get-Content | Add-Content .\Output\PSADHealth.psm1
 
 
-
     "`$PublicFunctions = '$($Public.BaseName -join "', '")'" | Add-Content .\Output\PSADHealth.psm1
-
-    
 
     Remove-Item -Path .\PSADHealth -Recurse -Force
     Rename-Item -Path .\Output -NewName 'PSADHealth'
@@ -85,8 +82,6 @@ if($Test.IsPresent) {
     }
 
     Install-Module -Name Pester -RequiredVersion 4.3.1 -Scope CurrentUser -Force -SkipPublisherCheck
-
-    $RelevantFiles = (Get-ChildItem $PSScriptRoot -Recurse -Include "*.psm1","*.ps1").FullName
 
     $RelevantFiles = (Get-ChildItem $PSScriptRoot -Recurse -Include "*.psm1","*.ps1").FullName
 
