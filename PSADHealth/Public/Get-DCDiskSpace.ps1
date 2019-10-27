@@ -18,7 +18,7 @@ Function Get-DCDiskspace {
 
             ForEach ($server in $DClist){
 
-                  $disk = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" -ComputerName $server | Where-Object { $_.DeviceId -eq $DriveLetter}
+                  $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ComputerName $server | Where-Object { $_.DeviceId -eq $DriveLetter} 
                   $Size = (($disk | Measure-Object -Property Size -Sum).sum/1gb)
                   $FreeSpace = (($disk | Measure-Object -Property FreeSpace -Sum).sum/1gb)
                   $freepercent = [math]::round(($FreeSpace / $size) * 100,0)
@@ -34,7 +34,7 @@ Function Get-DCDiskspace {
                   $EmailBody = @"
             
             
-            Server named <font color="Red"><b> $Server </b></font> is running low on disk space on drive C:!
+            Server named <font color="Red"><b> $Server </b></font> is running low on disk space on drive $DriveLetter !
             <br/>
             $($Diskinfo | ConvertTo-Html -Fragment)
             <br/>
