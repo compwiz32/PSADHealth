@@ -33,7 +33,7 @@ function Test-ADServices {
             
             forEach ($service in $collection){
                 try {
-                   $s = Get-Service -Name $Service -Computername $server -ErrorAction Stop
+                   $s = Get-CimInstance Win32_Service -filter "name='$service'" -Computername $server -ErrorAction Stop
                    $s
                 }
                 
@@ -42,7 +42,7 @@ function Test-ADServices {
                 }
 
 
-                if($s.status -eq "Stopped"){
+                if($s.State -eq "Stopped"){
 
 
                     $Subject = "Windows Service: $($s.Displayname), is stopped on $server "
