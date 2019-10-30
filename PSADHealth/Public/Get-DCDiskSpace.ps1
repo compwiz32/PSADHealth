@@ -1,11 +1,28 @@
 Function Get-DCDiskspace {
       [cmdletBinding()]
       Param(
-            [Parameter(Mandatory,Position=0)]
+            [Parameter(Mandatory, Position = 0)]
             [String]
             $DriveLetter
       )
-      
+      <#
+    .SYNOPSIS
+    Monitor AD Domain Controller Disk space on the specified drive
+    
+    .DESCRIPTION
+    This function is used to Monitor AD Domain Controller Disk space and send alerts if below the specified threshold
+
+    .EXAMPLE
+    Run as a scheduled task on a tool server to remotely monitor disk space on all DCs in a specified domain.  
+
+   
+    .NOTES
+    Authors: Mike Kanakos, Greg Onstot
+    Version: 0.0.5
+    Version Date: 10/30/2019
+
+      #>
+
       begin {
             Import-Module ActiveDirectory
             #Creates a global $configuration variable
@@ -16,22 +33,22 @@ Function Get-DCDiskspace {
             $DClist = (get-adgroupmember "Domain Controllers").name
             $FreeDiskThreshold = $Configuration.FreeDiskThreshold
 
-            ForEach ($server in $DClist){
+            ForEach ($server in $DClist) {
 
-                  $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ComputerName $server | Where-Object { $_.DeviceId -eq $DriveLetter} 
-                  $Size = (($disk | Measure-Object -Property Size -Sum).sum/1gb)
-                  $FreeSpace = (($disk | Measure-Object -Property FreeSpace -Sum).sum/1gb)
-                  $freepercent = [math]::round(($FreeSpace / $size) * 100,0)
+                  $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" -ComputerName $server | Where-Object { $_.DeviceId -eq $DriveLetter } 
+                  $Size = (($disk | Measure-Object -Property Size -Sum).sum / 1gb)
+                  $FreeSpace = (($disk | Measure-Object -Property FreeSpace -Sum).sum / 1gb)
+                  $freepercent = [math]::round(($FreeSpace / $size) * 100, 0)
                   $Diskinfo = [PSCustomObject]@{
-                        Drive = $disk.Name
-                        "Total Disk Size (GB)" = [math]::round($size,2)
-                        "Free Disk Size (GB)" = [math]::round($FreeSpace,2)
-                        "Percent Free (%)" = $freepercent
+                        Drive                  = $disk.Name
+                        "Total Disk Size (GB)" = [math]::round($size, 2)
+                        "Free Disk Size (GB)"  = [math]::round($FreeSpace, 2)
+                        "Percent Free (%)"     = $freepercent
                   } #End $DiskInfo Calculations
             
-            If ($Diskinfo.'Percent Free (%)' -lt $FreeDiskThreshold){
-                  $Subject = "Low Disk Space: Server $Server"
-                  $EmailBody = @"
+                  If ($Diskinfo.'Percent Free (%)' -lt $FreeDiskThreshold) {
+                        $Subject = "Low Disk Space: Server $Server"
+                        $EmailBody = @"
             
             
             Server named <font color="Red"><b> $Server </b></font> is running low on disk space on drive $DriveLetter !
@@ -43,23 +60,23 @@ Function Get-DCDiskspace {
             THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
 
-                  $mailParams = @{
-                        To = $Configuration.MailTo
-                        From = $Configuration.MailFrom
-                        SmtpServer = $Configuration.SmtpServer
-                        Subject = $Subject
-                        Body = $EmailBody
-                        BodyAsHtml = $true
-                  }
-                  Send-MailMessage @mailParams
+                        $mailParams = @{
+                              To         = $Configuration.MailTo
+                              From       = $Configuration.MailFrom
+                              SmtpServer = $Configuration.SmtpServer
+                              Subject    = $Subject
+                              Body       = $EmailBody
+                              BodyAsHtml = $true
+                        }
+                        Send-MailMessage @mailParams
             
-            } #End If
+                  } #End If
 
 
             } # End ForEach
 
       }
 
-      end {}
+      end { }
 
 }
