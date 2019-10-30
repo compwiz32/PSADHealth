@@ -2,7 +2,23 @@
 function Test-ADServices {
     [cmdletBinding()]
     Param()
+<#
+    .SYNOPSIS
+    Monitor AD Domain Controller Services
+    
+    .DESCRIPTION
+    This function is used to Monitor AD Domain Controller services and send alerts if any identified services are stopped
 
+    .EXAMPLE
+    Run as a scheduled task on a tool server to remotely monitor service status on all DCs in a specified domain.  
+
+   
+    .NOTES
+    Authors: Mike Kanakos, Greg Onstot
+    Version: 0.0.5
+    Version Date: 10/30/2019
+
+#>
     begin {
         Import-Module ActiveDirectory
         #Creates a global $configuration variable
