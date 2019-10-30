@@ -2,7 +2,7 @@
 function Test-ADServices {
     [cmdletBinding()]
     Param()
-<#
+    <#
     .SYNOPSIS
     Monitor AD Domain Controller Services
     
@@ -28,65 +28,50 @@ function Test-ADServices {
     process {
         $DClist = (get-adgroupmember "Domain Controllers").name
         $collection = @('ADWS',
-                        'DHCPServer',
-                        'DNS',
-                        'DFS',
-                        'DFSR',
-                        'Eventlog',
-                        'EventSystem',
-                        'KDC',
-                        'LanManWorkstation',
-                        'LanManServer',
-                        'NetLogon',
-                        'NTDS',
-                        'RPCSS',
-                        'SAMSS',
-                        'W32Time')
+            'DHCPServer',
+            'DNS',
+            'DFS',
+            'DFSR',
+            'Eventlog',
+            'EventSystem',
+            'KDC',
+            'LanManWorkstation',
+            'LanManServer',
+            'NetLogon',
+            'NTDS',
+            'RPCSS',
+            'SAMSS',
+            'W32Time')
 
-        
-
-        forEach ($server in $DClist){
-            
-            forEach ($service in $collection){
+        forEach ($server in $DClist) {
+            forEach ($service in $collection) {
                 try {
-                   $s = Get-CimInstance Win32_Service -filter "name='$service'" -Computername $server -ErrorAction Stop
-                   $s
+                    $s = Get-CimInstance Win32_Service -filter "name='$service'" -Computername $server -ErrorAction Stop
+                    $s
                 }
-                
                 catch {
                     Out-Null
                 }
 
-
-                if($s.State -eq "Stopped"){
-
-
+                if ($s.State -eq "Stopped") {
                     $Subject = "Windows Service: $($s.Displayname), is stopped on $server "
-                    
                     $EmailBody = @"
                                 Service named <font color=Red><b>$($s.Displayname)</b></font> is stopped!
                                 Time of Event: <font color=Red><b>"""$((get-date))"""</b></font><br/>
                                 <br/>
                                 THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
-                
                     $mailParams = @{
-                        To = $Configuration.MailTo
-                        From = $Configuration.MailFrom
+                        To         = $Configuration.MailTo
+                        From       = $Configuration.MailFrom
                         SmtpServer = $Configuration.SmtpServer
-                        Subject = $Subject
-                        Body = $EmailBody
+                        Subject    = $Subject
+                        Body       = $EmailBody
                         BodyAsHtml = $true
                     }
-
                     Send-MailMessage @mailParams
-                
                 } #End If
-
             } #Service Foreach
-        
         } #DCList Foreach
-    
     } #Process
-
 } #function
