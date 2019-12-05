@@ -38,7 +38,7 @@ Function Test-SRVRecords {
         $Records = @($DCHash, $GCHash, $KDCHash)
         ForEach ($Record in $Records) {
             # If ($Record -ne $DCCount){
-            If ($record.values -ne $DCCount) {
+            If ($record.values -le $DCCount) {
                 $Subject = "There is an SRV record missing from DNS"
                 $EmailBody = @"
         
@@ -64,7 +64,7 @@ Function Test-SRVRecords {
             } #End if
         }#End Foreach
 
-        If ($PDC_SRV_RecordCount -ne 1) { 
+        If ($PDC_SRV_RecordCount -le 1) { 
             $Subject = "The PDC SRV record is missing from DNS"
             $EmailBody = @"
         
