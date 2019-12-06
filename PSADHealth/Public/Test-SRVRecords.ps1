@@ -21,9 +21,12 @@ Function Test-SRVRecords {
         $KDC_SRV_Record = '_kerberos._tcp.dc'
         $PDC_SRV_Record = '_ldap._tcp.pdc'
         
-        $DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
-        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
-        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).count)
+        $DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+                ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+                ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+                ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
         $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count)
 
         $DCHash = @{ }
