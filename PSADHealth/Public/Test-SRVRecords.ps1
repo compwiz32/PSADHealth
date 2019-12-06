@@ -16,37 +16,33 @@ Function Test-SRVRecords {
         $PDCEmulator = (get-addomaincontroller -Discover -Service PrimaryDC).name
         $MSDCSZoneName = "_msdcs." + $DomainFQDN
 
-        # $MSDCSZoneName = '_msdcs.bigfirm.biz'
-
         $DC_SRV_Record = '_ldap._tcp.dc'
         $GC_SRV_Record = '_ldap._tcp.gc'
         $KDC_SRV_Record = '_kerberos._tcp.dc'
         $PDC_SRV_Record = '_ldap._tcp.pdc'
-
-		$DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator `
-                                | ForEach-Object {$_.RecordData.DomainName.toLower()} | Sort-Object | Get-Unique).count)
-        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator `
-                                | ForEach-Object {$_.RecordData.DomainName.toLower()} | Sort-Object | Get-Unique).count)
-        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator `
-                                | ForEach-Object {$_.RecordData.DomainName.toLower()} | Sort-Object | Get-Unique).count)
+        
+        $DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+                ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+                ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+                ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
         $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count)
 
-		$DCHash = @{}
-		$DCHash.add($dc_SRV_Record,$dc_SRV_RecordCount)
-
-		$GCHash = @{}
-		$GCHash.add($gc_SRV_Record,$gc_SRV_RecordCount)
-
-		$KDCHash = @{}
-		$KDCHash.add($kdc_SRV_Record,$kdc_SRV_RecordCount)
-
-
+        $DCHash = @{ }
+        $DCHash.add($dc_SRV_Record, $dc_SRV_RecordCount)
+		
+        $GCHash = @{ }
+        $GCHash.add($gc_SRV_Record, $gc_SRV_RecordCount)
+		
+        $KDCHash = @{ }
+        $KDCHash.add($kdc_SRV_Record, $kdc_SRV_RecordCount)
 
         $Records = @($DCHash, $GCHash, $KDCHash)
-        ForEach ($Record in $Records){
+        ForEach ($Record in $Records) {
             # If ($Record -ne $DCCount){
-            If ($record.values -ne $DCCount){
-				$Subject = "There is an SRV record missing from DNS"
+            If ($record.values -le $DCCount) {
+                $Subject = "There is an SRV record missing from DNS"
                 $EmailBody = @"
 
 
@@ -57,47 +53,41 @@ Function Test-SRVRecords {
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
 
-            $mailParams = @{
-                To = $Configuration.MailTo
-                From = $Configuration.MailFrom
-                SmtpServer = $Configuration.SmtpServer
-                Subject = $Subject
-                Body = $EmailBody
-                BodyAsHtml = $true
-            }
+                $mailParams = @{
+                    To         = $Configuration.MailTo
+                    From       = $Configuration.MailFrom
+                    SmtpServer = $Configuration.SmtpServer
+                    Subject    = $Subject
+                    Body       = $EmailBody
+                    BodyAsHtml = $true
+                }
 
-            Send-MailMessage @mailParams
+                Send-MailMessage @mailParams
 
             } #End if
         }#End Foreach
-
 
         If ($PDC_SRV_RecordCount -ne 1) {
 
                 $Subject = "The PDC SRV record is missing from DNS"
                 $EmailBody = @"
 
-
         The <font color="Red"><b> PDC SRV record</b></font> is missing from the $MSDCSZoneName in DNS.
         Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
         <br/>
         THIS EMAIL WAS AUTO-GENERATED. PLEASE DO NOT REPLY TO THIS EMAIL.
 "@
-
             $mailParams = @{
-                To = $Configuration.MailTo
-                From = $Configuration.MailFrom
+                To         = $Configuration.MailTo
+                From       = $Configuration.MailFrom
                 SmtpServer = $Configuration.SmtpServer
-                Subject = $Subject
-                Body = $EmailBody
+                Subject    = $Subject
+                Body       = $EmailBody
                 BodyAsHtml = $true
             }
 
             Send-MailMessage @mailParams
-
-            } #END PDC If
-
+        } #END PDC If
     }
-
-    end {}
+    end { }
 }
