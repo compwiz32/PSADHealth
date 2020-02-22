@@ -14,6 +14,7 @@ Function Test-SRVRecords {
         $DCList = ((Get-ADGroupMember "Domain Controllers").name).tolower()
         $DCCount = $DCList.Length
         $PDCEmulator = ((Get-ADDomainController -Discover -Service PrimaryDC).name).tolower()
+
         $MSDCSZoneName = "_msdcs." + $DomainFQDN
 
         $DC_SRV_Record = '_ldap._tcp.dc'
@@ -72,6 +73,7 @@ Function Test-SRVRecords {
             $EmailBody = @"
 
 
+
         The <font color="Red"><b> PDC SRV record</b></font> is missing from the $MSDCSZoneName in DNS.
         Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
         <br/>
@@ -85,6 +87,7 @@ Function Test-SRVRecords {
                 Body       = $EmailBody
                 BodyAsHtml = $true
             }
+
             Send-MailMessage @mailParams
         } #END PDC If
     }
