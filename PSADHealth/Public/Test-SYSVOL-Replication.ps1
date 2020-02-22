@@ -11,7 +11,7 @@ function Test-SysvolReplication {
     <#
     .SYNOPSIS
     Monitor AD SYSVOL Replication
-    
+
     .DESCRIPTION
     Each run of the script creates a unique test object in SYSVOL on the PDCE, and tracks it's replication to all other DCs in the domain.
     By default it will query the DCs for about 60 minutes.  If after 60 loops the file hasn't repliated the test will terminate and create an alert.
@@ -21,13 +21,13 @@ function Test-SysvolReplication {
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
-   
+
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
     Version: 0.6.5
     Version Date: 4/18/2019
-    
+
     Event Source 'PSMonitor' will be created
 
     EventID Definition:
@@ -58,9 +58,9 @@ function Test-SysvolReplication {
         $SourceSystem = (Get-ADDomain).pdcemulator
         [int]$MaxCycles = $Configuration.MaxSysvolReplCycles
     }
-    
+
     Process {
-        if (Test-NetConnection $SourceSystem -Port 445) {
+        if ($(Test-NetConnection $SourceSystem -Port 445).TcpTestSucceeded) {
             Write-Verbose 'PDCE is online'
             $TempObjectLocation = "\\$SourceSystem\SYSVOL\$domainname\Scripts"
             $tempObjectName = "sysvolReplTempObject" + (Get-Date -f yyyyMMddHHmmss) + ".txt"
@@ -86,7 +86,7 @@ function Test-SysvolReplication {
                 #New-SlackPost "Alert - FAILURE to write SYSVOL test object to PDCE - $SourceSystem  in site - $site"
                 Exit
             }
-            
+
             $startDateTime = Get-Date
             $i = 0
         }
@@ -97,7 +97,7 @@ function Test-SysvolReplication {
             #New-SlackPost "Alert - FAILURE to connect to PDCE - $SourceSystem  in site - $site"
             Exit
         }
-        
+
         While ($continue) {
             $i++
             Write-Verbose 'Sleeping for 1 minute.'
@@ -106,10 +106,10 @@ function Test-SysvolReplication {
             $replicated = $true
             Write-Verbose "Cycle - $i"
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17001 -EntryType Information -message "CHECKING SYSVOL ADRepl Cycle $i" -category "17001"
-        
+
             Foreach ($dc in $DCList) {
                 $site = (Get-ADDomainController $dc).site
-                if (Test-NetConnection $dc -Port 445) {
+                if ($(Test-NetConnection $dc -Port 445).TcpTestSucceeded) {
                     Write-Verbose "Online - $dc"
                     $objectPath = "\\$dc\SYSVOL\$domainname\Scripts\$tempObjectName"
                     $connectionResult = "SUCCESS"
@@ -133,7 +133,7 @@ function Test-SysvolReplication {
                         $replicated = $false
                     }
                 }
-        		
+
                 # If The Connection To The DC Is Unsuccessful
                 If ($connectionResult -eq "FAILURE") {
                     Write-Verbose "     - Unable To Connect To DC/GC And Check For The Temp Object..."
@@ -142,19 +142,19 @@ function Test-SysvolReplication {
             }
             If ($replicated) {
                 $continue = $false
-            } 
-        
+            }
+
             If ($i -gt $MaxCycles) {
                 $continue = $false
                 #gather event history to see which DC did, and which did not, get the replication
-                $list = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17002") -OR ($_.InstanceID -Match "17003") -OR ($_.InstanceID -Match "17006")} 
+                $list = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17002") -OR ($_.InstanceID -Match "17003") -OR ($_.InstanceID -Match "17006")}
                 $RelevantEvents = $list |Select InstanceID,Message |Out-String
-                
+
                 Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17004 -EntryType Warning -message "INCOMPLETE SYSVOL Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17004"
-                $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.  
+                $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.
                 Please see the following support article $SupportArticle to help investigate
-                
+
                 Recent history:
                 $RelevantEvents
                 "
@@ -162,10 +162,10 @@ function Test-SysvolReplication {
                 Send-Mail $Alert
                 #Write-Verbose "Sending Slack Alert"
                 #New-SlackPost "Alert - Incomplete SYSVOL Replication Cycle in the domain: $domainname"
-            } 
-        }	
+            }
+        }
     }
-    
+
     End {
         # Show The Start Time, The End Time And The Duration Of The Replication
         $endDateTime = Get-Date
@@ -174,11 +174,11 @@ function Test-SysvolReplication {
         $output = $output + "`n  End Time........: $(Get-Date $endDateTime -format "yyyy-MM-dd HH:mm:ss")"
         $output = $output + "`n  Duration........: $duration Seconds"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17005 -EntryType Information -message "END of SYSVOL Test cycle - $output" -category "17005"
-        
+
         Write-Verbose "`n  Start Time......: $(Get-Date $startDateTime -format "yyyy-MM-dd HH:mm:ss")"
         Write-Verbose "  End Time........: $(Get-Date $endDateTime -format "yyyy-MM-dd HH:mm:ss")"
         Write-Verbose "  Duration........: $duration Seconds"
-        
+
         # Delete The Temp Object On The RWDC
         Write-Verbose "  Deleting Temp Text File..."
         Remove-Item "$TempObjectLocation\$tempObjectName" -Force
@@ -187,7 +187,7 @@ function Test-SysvolReplication {
 
         If (!$CurrentFailure){
             Write-Verbose "No Issues found in this run"
-            $InError = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17000") -or ($_.InstanceID -Match "17004")} 
+            $InError = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17000") -or ($_.InstanceID -Match "17004")}
             If ($InError) {
                 Write-Verbose "Previous Errors Seen"
                 #Previous run had an alert

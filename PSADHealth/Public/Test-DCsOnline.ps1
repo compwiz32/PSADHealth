@@ -7,7 +7,7 @@ Function Test-DCsOnline {
         #Creates a global $configuration variable
         $null = Get-ADConfig
     }
-    
+
     Process {
         $DClist = (get-adgroupmember "Domain Controllers").name
 
@@ -17,8 +17,8 @@ Function Test-DCsOnline {
             {
                 $Subject = "Server $Server is offline"
                 $EmailBody = @"
-        
-        
+
+
         Server named <font color="Red"><b> $Server </b></font> is offline!
         Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
         <br/>
@@ -37,6 +37,6 @@ Function Test-DCsOnline {
 
             } #End if
         }#End Foreach
-}
+    }
     End {}
 }

@@ -10,38 +10,39 @@ Function Test-SRVRecords {
     }
 
     process {
-        $DomainFQDN = (get-addomain).dnsroot
-        $DCList = (get-adgroupmember "Domain Controllers").name
+        $DomainFQDN = (Get-ADDomain).dnsroot
+        $DCList = ((Get-ADGroupMember "Domain Controllers").name).tolower()
         $DCCount = $DCList.Length
-        $PDCEmulator = (get-addomaincontroller -Discover -Service PrimaryDC).name
+        $PDCEmulator = ((Get-ADDomainController -Discover -Service PrimaryDC).name).tolower()
+
         $MSDCSZoneName = "_msdcs." + $DomainFQDN
 
         $DC_SRV_Record = '_ldap._tcp.dc'
         $GC_SRV_Record = '_ldap._tcp.gc'
         $KDC_SRV_Record = '_kerberos._tcp.dc'
         $PDC_SRV_Record = '_ldap._tcp.pdc'
-        
-        $DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+
+        $DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator |
                 ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
-        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+        $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator |
                 ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
-        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator | 
+        $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator |
                 ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
         $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count)
 
         $DCHash = @{ }
         $DCHash.add($dc_SRV_Record, $dc_SRV_RecordCount)
-		
+
         $GCHash = @{ }
         $GCHash.add($gc_SRV_Record, $gc_SRV_RecordCount)
-		
+
         $KDCHash = @{ }
         $KDCHash.add($kdc_SRV_Record, $kdc_SRV_RecordCount)
 
         $Records = @($DCHash, $GCHash, $KDCHash)
         ForEach ($Record in $Records) {
             # If ($Record -ne $DCCount){
-            If ($record.values -le $DCCount) {
+            If ($record.values -lt $DCCount) {
                 $Subject = "There is an SRV record missing from DNS"
                 $EmailBody = @"
 
@@ -67,10 +68,11 @@ Function Test-SRVRecords {
             } #End if
         }#End Foreach
 
-        If ($PDC_SRV_RecordCount -ne 1) {
+        If ($PDC_SRV_RecordCount -lt 1) {
+            $Subject = "The PDC SRV record is missing from DNS"
+            $EmailBody = @"
 
-                $Subject = "The PDC SRV record is missing from DNS"
-                $EmailBody = @"
+
 
         The <font color="Red"><b> PDC SRV record</b></font> is missing from the $MSDCSZoneName in DNS.
         Time of Event: <font color="Red"><b> $((get-date))</b></font><br/>
