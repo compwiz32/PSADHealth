@@ -1,21 +1,66 @@
 Function Test-SRVRecords {
+    <#
+    .SYNOPSIS
+        Compares DNS entries to the number of domain controllers and notifies of inconsistencies
 
+    .DESCRIPTION
+        Compares DNS entries to the number of domain controllers and notifies of inconsistencies
+        Checks the various records in the _msdcs.domainname zone for consistency with the number of DCs in the environment
+
+    .EXAMPLE
+        PS C:\> Test-SRVRecords
+        
+        Runs tests silently and only notifies you of issues
+
+    .EXAMPLE
+        PS C:\> Test-SRVRecords -Verbose
+        
+        Runs tests with feedback of progress and only notifies you via email if there are issues
+
+    .EXAMPLE
+        PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 1) -RepeatIndefinitely
+        PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+        PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+        PS C:\> Register-ScheduledJob -Name Test-SRVRecords -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-SRVRecords} -MaxResultCount 5 -ScheduledJobOption $opt
+
+        Creates a scheduled task to run Test-SRVRecords on an hourly basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
+
+        .NOTES
+        Changes by Charles Palmer 5/28/2020
+        Verbosity Updates:
+            Silenced the import of ActiveDirectory module because we don't really want to see that
+            Added "Silently loaded ActiveDirectory module" statement in its place
+            Added Verbose statement for each populated variable
+            Added Verbose statement for object counts
+        Added Comment based Help section (and these notes)
+        Commentary:
+            The version from the PSGallery doesn't contain the foreach/tolower code
+                I had the extra records as called out in Issue #96. I had added the verbose statements to help me figure out what was wrong
+            The assumption is missing records when sending the email. 
+                Sometimes it has to do with extra records (retired DCs not cleaned up properly, duplicate entries based on case, etc.)
+    #>
     [cmdletBinding()]
     Param()
 
     begin {
-        Import-Module ActiveDirectory
+        Import-Module ActiveDirectory -Verbose:$false
+        Write-Verbose -Message "Silently loaded ActiveDirectory module"
         #Creates a global $configuration variable
         $null = Get-ADConfig
     }
 
     process {
         $DomainFQDN = (Get-ADDomain).dnsroot
+        Write-Verbose -Message "DomainFQDN: $DomainFQDN"
         $DCList = ((Get-ADGroupMember "Domain Controllers").name).tolower()
+        Write-Verbose -Message "DCList: $DCList"
         $DCCount = $DCList.Length
+        Write-Verbose -Message "DCCount: $DCCount"
         $PDCEmulator = ((Get-ADDomainController -Discover -Service PrimaryDC).name).tolower()
+        Write-Verbose -Message "PDCEmulator: $PDCEmulator"
 
         $MSDCSZoneName = "_msdcs." + $DomainFQDN
+        Write-Verbose -Message "MSDCSZoneName: $MSDCSZoneName"
 
         $DC_SRV_Record = '_ldap._tcp.dc'
         $GC_SRV_Record = '_ldap._tcp.gc'
@@ -24,11 +69,15 @@ Function Test-SRVRecords {
 
         $DC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $DC_SRV_Record -RRType srv -ComputerName $PDCEmulator |
                 ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        Write-Verbose -Message "DC_SRV_RecordCount: $DC_SRV_RecordCount"
         $GC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $GC_SRV_Record -RRType srv -ComputerName $PDCEmulator |
                 ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        Write-Verbose -Message "GC_SRV_RecordCount: $GC_SRV_RecordCount"
         $KDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $KDC_SRV_Record -RRType srv -ComputerName $PDCEmulator |
                 ForEach-Object { $_.RecordData.DomainName.toLower() } | Sort-Object | Get-Unique).count)
+        Write-Verbose -Message "KDC_SRV_RecordCount: $KDC_SRV_RecordCount"
         $PDC_SRV_RecordCount = (@(Get-DnsServerResourceRecord -ZoneName $MSDCSZoneName -Name $PDC_SRV_Record -RRType srv -ComputerName $PDCEmulator).Count)
+        Write-Verbose -Message "PDC_SRV_RecordCount: $PDC_SRV_RecordCount"
 
         $DCHash = @{ }
         $DCHash.add($dc_SRV_Record, $dc_SRV_RecordCount)
