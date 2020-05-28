@@ -9,7 +9,12 @@ function Get-ADLastBackupDate {
     This script Checks AD for the last backup date
 
     .EXAMPLE
-    Run as a scheduled task.  Use Event Log consolidation tools to pull and alert on issues found.
+        PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 24) -RepeatIndefinitely
+        PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+        PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+        PS C:\> Register-ScheduledJob -Name Test-ADLastBackupDate -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-ADLastBackupDate} -MaxResultCount 5 -ScheduledJobOption $opt
+
+        Creates a scheduled task to run Test-ADLastBackupDate on a daily basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
@@ -30,23 +35,26 @@ function Get-ADLastBackupDate {
     #>
 
     Begin {
-        Import-Module activedirectory
+        Import-Module ActiveDirectory -Verbose:$false
+        Write-Verbose -Message "Silently loaded ActiveDirectory module"
 
         $null = Get-ADConfig
 
         $SupportArticle = $Configuration.SupportArticle
 
-        if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
-            write-verbose "Adding Event Source."
+        If (-not ([System.Diagnostics.EventLog]::SourceExists("PSMonitor"))) {
+            Write-Verbose -Message "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
-        }#end if
+        } #end if
 
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17051 -EntryType Information -message "START of AD Backup Check ." -category "17051"
         
         $Domain = (Get-ADDomain).DNSRoot
+        Write-Verbose -Message "Domain: $Domain"
         $Regex = '\d\d\d\d-\d\d-\d\d'
         $CurrentDate = Get-Date
         $MaxDaysSinceBackup = $Configuration.MaxDaysSinceBackup
+        Write-Verbose -Message "Maximum allowed days since last backup: $MaxDaysSinceBackup"
         
     }#End Begin
 
@@ -56,12 +64,10 @@ function Get-ADLastBackupDate {
         #Compare the last backup date to today's date
         $Result = (New-TimeSpan -Start $LastBackup -End $CurrentDate).Days
         
-        Write-Verbose "Last Active Directory backup occurred on $LastBackup! $Result days is less than the alert criteria of $MaxDaysSinceBackup day."
-                        
         #Test if result is greater than max allowed days without backup
         If ($Result -gt $MaxDaysSinceBackup) {
             
-            Write-Verbose "Last Active Directory backup occurred on $LastBackup! $Result days is higher than the alert criteria of $MaxDaysSinceBackup day."
+            Write-Verbose -Message "Last Active Directory backup occurred on $LastBackup! $Result days is higher than the alert criteria of $MaxDaysSinceBackup day."
             
             $emailOutput = "Last Active Directory backup occurred on $LastBackup! $Result days is higher than the alert criteria of $MaxDaysSinceBackup day."
             
@@ -79,9 +85,11 @@ function Get-ADLastBackupDate {
           }
 
           Send-MailMessage @mailParams
+          Write-Verbose -Message "Sent email notification for Last AD Backup Date"
           #Write-Verbose "Sending Slack Alert"
           #New-SlackPost "Alert - AD Last Backup is $Result days old"
         }else {
+            Write-Verbose -Message "Last Active Directory backup occurred on $LastBackup! $Result days is less than the alert criteria of $MaxDaysSinceBackup day."
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17052 -EntryType Information -message "SUCCESS - Last Active Directory backup occurred on $LastBackup! $Result days is less than the alert criteria of $MaxDaysSinceBackup day." -category "17052"
         }#end else
         
@@ -93,11 +101,11 @@ function Get-ADLastBackupDate {
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17053 -EntryType Information -message "END of AD Backup Check ." -category "17053"
         
         If (!$CurrentFailure){
-            Write-Verbose "No Issues found in this run"
-            $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | where {($_.InstanceID -Match "17050")} 
+            Write-Verbose -Message "No Issues found in this run"
+            $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | Where-Object {($_.InstanceID -Match "17050")} 
             
             If ($InError) {
-                Write-Verbose "Previous Errors Seen"
+                Write-Verbose -Message "Previous Errors Seen"
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
                 $alertclearedParams = @{
@@ -110,6 +118,7 @@ function Get-ADLastBackupDate {
               }
     
               Send-MailMessage @alertclearedParams
+              Write-Verbose -Message "Sent email notification for Last AD Backup Date Recovery"
               #Write-Verbose "Sending Slack Message - AD Backup Alert Cleared"
               #New-SlackPost "The previous alert, for AD Last Backup has cleared."
                 #Write-Output $InError
