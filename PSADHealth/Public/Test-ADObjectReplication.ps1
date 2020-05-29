@@ -35,6 +35,14 @@ function Test-ADObjectReplication {
     17017 - Test Object Deleted
     17018 - 1 minute Sleep
     17019 - Posible old object detected
+
+    Updated: 05/29/2020
+        Silenced the import of ActiveDirectory module because we don't really want to see that
+        Added "Silently loaded ActiveDirectory module" statement in its place
+        Primarily adding -Message for good code hygiene and expanding any aliases
+        Added a few more verbose statements for derived information
+        All in all, this function already had pretty good verbosity
+        Send-AlertCleared was not passing the $InError variable (I think this is a Script to Function issue). Corrected
     #>
 
     Begin {
@@ -203,7 +211,7 @@ function Test-ADObjectReplication {
                 Write-Verbose -Message "Previous Errors Seen"
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
-                Send-AlertCleared
+                Send-AlertCleared -InError $InError
                 #Write-Verbose "Sending Slack Message - Alert Cleared"
                 #New-SlackPost "The previous alert, for AD Object Replication, has cleared."
                 #Write-Output $InError
