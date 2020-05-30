@@ -12,6 +12,10 @@ function Set-PSADHealthConfig
 
         The smtp server this module will use for reports.
 
+        .PARAMETER ExternalDNSServers
+
+        Provide an array of servers: @('1.2.3.4', '4.3.2.1')
+
         .EXAMPLE
         Set-PSADHealthConfig -SMTPServer email.company.com
 
@@ -21,14 +25,18 @@ function Set-PSADHealthConfig
         .EXAMPLE
         Set-PSADHealthConfig -MaxDaysSinceBackup 12
 
-
+        .NOTES
+        Updated: 05/29/2020
+            Added FreeDiskThreshold parameter and setting update
+            Added ExternalDNSServers parameter, setting update and PARAMETER help message
+            Modified assignment to PSADHealthConfigPath parameter so that it will work with Public folder during development (and should still work fine in production)
     #>
 
     [cmdletBinding()]
     Param(
 
         [Parameter(Position=0)]
-        $PSADHealthConfigPath = "$($PSScriptRoot)\Config\ADConfig.json",
+        $PSADHealthConfigPath = ("$($PSScriptRoot)\Config\ADConfig.json").Replace('Public\',''),
 
         [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [string]
@@ -57,6 +65,14 @@ function Set-PSADHealthConfig
         [Parameter()]
         [string]
         $ExternalTimeServer,
+
+        [Parameter()]
+        [array]
+        $ExternalDNSServers,
+
+        [Parameter()]
+        [Int]
+        $FreeDiskThreshold,
 
         [Parameter()]
         [Int]
@@ -99,6 +115,12 @@ function Set-PSADHealthConfig
         }
         'ExternalTimeServer' {
             $config.ExternalTimeSvr = $ExternalTimeServer
+        }
+        'ExternalDNSServers' {
+            $config.ExternalDNSServers = $ExternalDNSServers
+        }
+        'FreeDiskThreshold' {
+            $config.FreeDiskThreshold = $FreeDiskThreshold
         }
         'MaxObjectReplCycles' {
             $config.MaxObjectReplCycles = $MaxObjectReplCycles

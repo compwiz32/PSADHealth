@@ -107,7 +107,7 @@ function Test-ADInternalTimeSync {
             }#end if
             If (-not $CurrentFailure) {
                 Write-Verbose "No Issues found in this run"
-                $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | where {($_.InstanceID -Match "17030")} 
+                $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | Where-Object {($_.InstanceID -Match "17030")} 
                 $errtext = $InError | Out-String
                 Write-Verbose -Message "$errtext"
                 If ($errtext -like "*$server*") {
