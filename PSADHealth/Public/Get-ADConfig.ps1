@@ -10,7 +10,8 @@ function Get-ADConfig {
 
         Get-ADConfig "C:\configs\ADConfig.json"
 
-
+        .NOTES
+        Added configuration file location test to ease testing of individual functions
     #>
     [cmdletBinding()]
     [Alias('Get-ADHealthConfig')]
@@ -21,7 +22,18 @@ function Get-ADConfig {
         $ConfigurationFile = "$PSScriptRoot\Config\ADConfig.json"
     )
 
-    begin {}
+    begin {
+        Write-Verbose -Message "Verifying Configuration File Path valid: $ConfigurationFile"
+        If (-not (Test-Path -Path $ConfigurationFile)) {
+            #When testing the module during development, the default pathing doesn't work
+            $ConfigurationFile = $ConfigurationFile.Replace('Public\', '')
+            If (Test-Path -Path $ConfigurationFile) {
+                Write-Verbose -Message "Configuration path updated: $ConfigurationFile"
+            } else {
+                Write-Warning -Message "Unable to find configuration File!!!"
+            }
+        }
+    }
 
     process {
 

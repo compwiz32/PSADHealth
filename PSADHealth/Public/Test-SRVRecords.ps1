@@ -113,7 +113,7 @@ Function Test-SRVRecords {
                 }
 
                 Send-MailMessage @mailParams
-
+                Write-Verbose -Message "Sent email notification for failed SRV record in $($Record.keys) zone"
             } #End if
         }#End Foreach
 
@@ -138,7 +138,10 @@ Function Test-SRVRecords {
             }
 
             Send-MailMessage @mailParams
+            Write-Verbose -Message "Sent email notification for failed PDC record in $MSDCSZoneName zone"
         } #END PDC If
     }
-    end { }
+    end {
+        Write-Verbose -Message "Finished testing DNS SRV Records for all DCs"
+    }
 }

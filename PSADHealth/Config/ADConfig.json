@@ -1,21 +1,21 @@
 {
-  "SMTPServer": "smtp.foobar.com",
-  "MailFrom": "ad_status_alert@foobar.com",
-  "MailTo": [
-    "ceo@foobar.com",
-    "supreme_it_leader@foobar.com"
-  ],
-  "MaxDaysSinceBackup": "1",
-  "MaxIntTimeDrift": "45",
-  "MaxExtTimeDrift": "15",
-  "ExternalTimeSvr": "time.google.com",
-  "ExternalDNSServers": [
-    "208.67.222.222",
-    "208.67.220.220"
-  ],
-  "FreeDiskThreshold": "70",
-  "MaxObjectReplCycles": "50",
-  "MaxSysvolReplCycles": "50",
-  "SupportArticle": "https://help.foobar.com/YourTroubleshootingArticles",
-  "SlackToken": "2343-woeij2-jwoeij223-b2334322"
+    "SMTPServer":  "smtp.foobar.com",
+    "MailFrom":  "ad_status_alert@foobar.com",
+    "MailTo":  [
+                   "ceo@foobar.com",
+                   "supreme_it_leader@foobar.com"
+               ],
+    "MaxDaysSinceBackup":  "1",
+    "MaxIntTimeDrift":  "45",
+    "MaxExtTimeDrift":  "15",
+    "ExternalTimeSvr":  "time.google.com",
+    "ExternalDNSServers":  [
+                               "208.67.222.222",
+                               "208.67.220.220"
+                           ],
+    "FreeDiskThreshold":  "70",
+    "MaxObjectReplCycles":  "50",
+    "MaxSysvolReplCycles":  "50",
+    "SupportArticle":  "https://help.foobar.com/YourTroubleshootingArticles",
+    "SlackToken":  "2343-woeij2-jwoeij223-b2334322"
 }
