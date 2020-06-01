@@ -22,6 +22,14 @@ function Test-SysvolReplication {
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
 
+    .EXAMPLE
+    PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
+    PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+    PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+    PS C:\> Register-ScheduledJob -Name Test-SysvolReplication -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-SysvolReplication} -MaxResultCount 5 -ScheduledJobOption $opt
+
+    Creates a scheduled task to run Test-SysvolReplication on an every two hour basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
+
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
