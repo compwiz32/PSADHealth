@@ -18,6 +18,13 @@ Function Get-DCDiskspace {
     .EXAMPLE
     Run as a scheduled task on a tool server to remotely monitor disk space on all DCs in a specified domain.  
 
+    .EXAMPLE
+        PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 1) -RepeatIndefinitely
+        PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+        PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+        PS C:\> Register-ScheduledJob -Name Get-DCDiskspace -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Get-DCDiskspace} -MaxResultCount 5 -ScheduledJobOption $opt
+
+        Creates a scheduled task to run Get-DCDiskspace on a hourly basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
    
     .NOTES
     Authors: Mike Kanakos, Greg Onstot

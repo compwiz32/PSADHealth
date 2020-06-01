@@ -13,7 +13,15 @@ function Test-ADReplication {
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
-   
+
+    .EXAMPLE
+    PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 1) -RepeatIndefinitely
+    PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+    PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+    PS C:\> Register-ScheduledJob -Name Test-ADReplication -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-ADReplication} -MaxResultCount 5 -ScheduledJobOption $opt
+
+    Creates a scheduled task to run Test-ADReplication on a hourly basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
+
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
     Version: 0.6.2

@@ -62,6 +62,9 @@ if ($Compile.IsPresent) {
 
     "`$PublicFunctions = '$($Public.BaseName -join "', '")'" | Add-Content .\Output\PSADHealth.psm1
 
+    #Let's add New-TaskRegistration.ps1 as part of Non-Module Scripts that get published with the module
+    Copy-Item -Path '.\Non-Module Scripts\*' -Filter '*.*' -Destination '.\Output\Non-Module Scripts' -Force
+
     Remove-Item -Path .\PSADHealth -Recurse -Force
     Rename-Item -Path .\Output -NewName 'PSADHealth'
 

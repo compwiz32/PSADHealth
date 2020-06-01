@@ -13,7 +13,16 @@ function Test-ADExternalTimeSync {
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
-   
+
+    .EXAMPLE
+    PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 24) -RepeatIndefinitely
+    PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+    PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+    PS C:\> Register-ScheduledJob -Name Test-ADExternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-ADExternalTimeSync} -MaxResultCount 5 -ScheduledJobOption $opt
+
+    Creates a scheduled task to run Test-ADExternalTimeSync on a daily basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
+
+
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
     Version: 0.7.2
