@@ -22,6 +22,14 @@ function Test-SysvolReplication {
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
 
+    .EXAMPLE
+    PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 2) -RepeatIndefinitely
+    PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+    PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+    PS C:\> Register-ScheduledJob -Name Test-SysvolReplication -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-SysvolReplication} -MaxResultCount 5 -ScheduledJobOption $opt
+
+    Creates a scheduled task to run Test-SysvolReplication on an every two hour basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
+
     .NOTES
     Author Greg Onstot
     This script must be run from a Win10, or Server 2016 system.  It can target older OS Versions.
@@ -41,47 +49,73 @@ function Test-SysvolReplication {
     17007 - Test Object Deleted
     17008 - 1 minute Sleep
     17009 - Alert Email Sent
+
+    Updated: 05/29/2020
+        Silenced the import of ActiveDirectory module because we don't really want to see that
+        Added "Silently loaded ActiveDirectory module" statement in its place
+        Primarily adding -Message for good code hygiene and expanding any aliases
+        File name verse function name is inconsistent. Renamed file to be consistent with function name
+        There were some redundant variables that I have reconciled (commenting out old in case I am missing a reason for something being the way it was)
+        If it fails to create the test object or the PDCE isn't online, the script just exits silently (since Slack isn't configured/enabled)
+            We probably should notify more than just Write-Verbose in that case (just in case people aren't monitoring the event log...)
+            Used a modified version of the Sent-Mail $Alert used further down in the script (I haven't investigated that Private function yet)
+        Send-AlertCleared was not passing the $InError variable (I think this is a Script to Function issue). Corrected
     #>
 
     Begin {
-        Import-Module activedirectory
+        Import-Module ActiveDirectory -Verbose:$false
+        Write-Verbose -Message "Silently loaded ActiveDirectory module"
         $null = Get-ADConfig
         $SupportArticle = $Configuration.SupportArticle
-        if (![System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
-            write-verbose "Adding Event Source."
+        if (-not [System.Diagnostics.EventLog]::SourceExists("PSMonitor")) {
+            write-verbose -Message "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
         }
         $continue = $true
         $CurrentFailure = $false
         $domainname = (Get-ADDomain).dnsroot
+        Write-Verbose -Message "Domain     : $domainname"
         $DCList = (Get-ADDomainController -Filter *).name
+        Write-Verbose -Message "DCList     : $DCList"
         $SourceSystem = (Get-ADDomain).pdcemulator
+        Write-Verbose -Message "PDCEmulator: $SourceSystem"
         [int]$MaxCycles = $Configuration.MaxSysvolReplCycles
+        Write-Verbose -Message "Max Cycles : $MaxCycles"
     }
 
     Process {
         if ($(Test-NetConnection $SourceSystem -Port 445).TcpTestSucceeded) {
-            Write-Verbose 'PDCE is online'
+            Write-Verbose -Message 'PDCE is online'
             $TempObjectLocation = "\\$SourceSystem\SYSVOL\$domainname\Scripts"
+            Write-Verbose -Message "Temp Object Location: $TempObjectLocation"
             $tempObjectName = "sysvolReplTempObject" + (Get-Date -f yyyyMMddHHmmss) + ".txt"
-            $objectPath = "\\$SourceSystem\SYSVOL\$domainname\Scripts\$tempObjectName"
-            "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $($TempObjectLocation + "\" + $tempObjectName)
+            Write-Verbose -Message "Temp Object Name    : $tempObjectName"
+            #$objectPath = "\\$SourceSystem\SYSVOL\$domainname\Scripts\$tempObjectName"
+            $objectPath = Join-Path -Path $TempObjectLocation -ChildPath $tempObjectName
+            "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $objectPath # $($TempObjectLocation + "\" + $tempObjectName) #Redundant
             $site = (Get-ADDomainController $SourceSystem).site
 
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17006 -EntryType Information -message "CREATE SYSVOL Test object - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17006"
             Start-Sleep 30
-            If (!(Test-Path -Path $objectPath)){
-                Write-Verbose "Object wasn't created properly, trying a second time"
+            If (-not (Test-Path -Path $objectPath)){
+                Write-Verbose -Message "Object wasn't created properly, trying a second time"
                 $tempObjectName = "sysvolReplTempObject" + (Get-Date -f yyyyMMddHHmmss) + ".txt"
-                $objectPath = "\\$SourceSystem\SYSVOL\$domainname\Scripts\$tempObjectName"
-                "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $($TempObjectLocation + "\" + $tempObjectName)
+                #$objectPath = "\\$SourceSystem\SYSVOL\$domainname\Scripts\$tempObjectName"
+                $objectPath = Join-Path -Path $TempObjectLocation -ChildPath $tempObjectName
+                "...!!!...TEMP OBJECT TO TEST AD REPLICATION LATENCY/CONVERGENCE...!!!..." | Out-File -FilePath $objectPath # $($TempObjectLocation + "\" + $tempObjectName)
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17006 -EntryType Information -message "CREATE SYSVOL Test object attempt Number 2 - $tempObjectName  - has been created on $SourceSystem in site - $site" -category "17006"
                 Start-Sleep 30
             }
 
-            If (!(Test-Path -Path $objectPath)){
-                Write-Verbose "Object wasn't created properly after 2 tries, exiting..."
+            If (-not (Test-Path -Path $objectPath)){
+                Write-Verbose -Message "Object wasn't created properly after 2 tries, exiting..."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "FAILURE to write SYSVOL test object to PDCE - $SourceSystem  in site - $site" -category "17000"
+                #We should say something urgent
+                $Alert = "In $domainname - Unable to create test Object in SYSVOL (failed twice).
+                Please see the following support article $SupportArticle to help investigate.
+                Review the event log for relevant events: PSMonitor 17000-17009"
+
+                Send-Mail $Alert
                 #Write-Verbose "Sending Slack Alert"
                 #New-SlackPost "Alert - FAILURE to write SYSVOL test object to PDCE - $SourceSystem  in site - $site"
                 Exit
@@ -89,33 +123,39 @@ function Test-SysvolReplication {
 
             $startDateTime = Get-Date
             $i = 0
-        }
+        } #end if PDC Emulator is available
         else {
-            Write-Verbose 'PDCE is offline.  You should really resolve that before continuing.'
+            Write-Verbose -Message 'PDCE is offline.  You should really resolve that before continuing.'
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "FAILURE to connect to PDCE - $SourceSystem  in site - $site" -category "17000"
+            $Alert = "In $domainname - PDC Emulator is offline. You should really resolve that before continuing.
+            Please see the following support article $SupportArticle to help investigate.
+            Review the event log for relevant events: PSMonitor 17000-17009"
+
+            Send-Mail $Alert
             #Write-Verbose "Sending Slack Alert"
             #New-SlackPost "Alert - FAILURE to connect to PDCE - $SourceSystem  in site - $site"
             Exit
-        }
+        } #end else PDC Emulator is available
 
         While ($continue) {
             $i++
-            Write-Verbose 'Sleeping for 1 minute.'
+            Write-Verbose -Message 'Sleeping for 1 minute.'
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17008 -EntryType Information -message "SLEEPING SYSVOL test for 1 minute" -category "17008"
             Start-Sleep 60
             $replicated = $true
-            Write-Verbose "Cycle - $i"
+            Write-Verbose -Message "Cycle - $i"
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17001 -EntryType Information -message "CHECKING SYSVOL ADRepl Cycle $i" -category "17001"
 
             Foreach ($dc in $DCList) {
                 $site = (Get-ADDomainController $dc).site
+                Write-Verbose -Message "Testing $dc in $site"
                 if ($(Test-NetConnection $dc -Port 445).TcpTestSucceeded) {
-                    Write-Verbose "Online - $dc"
+                    Write-Verbose -Message "Online - $dc"
                     $objectPath = "\\$dc\SYSVOL\$domainname\Scripts\$tempObjectName"
                     $connectionResult = "SUCCESS"
                 }
                 else {
-                    Write-Verbose "!!!!!OFFLINE - $dc !!!!!"
+                    Write-Verbose -Message "!!!!!OFFLINE - $dc !!!!!"
                     $connectionResult = "FAILURE"
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "FAILURE to connect to DC - $dc in site - $site" -category "17000"
                 }
@@ -123,12 +163,12 @@ function Test-SysvolReplication {
                 If ($connectionResult -eq "SUCCESS") {
                     If (Test-Path -Path $objectPath) {
                         # If The Temp Object Already Exists
-                        Write-Verbose "     - Object [$tempObjectName] Now Does Exist In The NetLogon Share"
+                        Write-Verbose -Message "     - Object [$tempObjectName] Now Does Exist In The NetLogon Share"
                         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17003 -EntryType Information -message "SUCCESS SYSVOL Object Successfully replicated to  - $dc in site - $site" -category "17003"
                     }
                     Else {
                         # If The Temp Object Does Not Yet Exist
-                        Write-Verbose "     - Object [$tempObjectName] Does NOT Exist Yet In The NetLogon Share"
+                        Write-Verbose -Message "     - Object [$tempObjectName] Does NOT Exist Yet In The NetLogon Share"
                         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17002 -EntryType Information -message "PENDING SYSVOL Object replication pending for  - $dc in site - $site" -category "17002"
                         $replicated = $false
                     }
@@ -136,10 +176,10 @@ function Test-SysvolReplication {
 
                 # If The Connection To The DC Is Unsuccessful
                 If ($connectionResult -eq "FAILURE") {
-                    Write-Verbose "     - Unable To Connect To DC/GC And Check For The Temp Object..."
+                    Write-Verbose -Message "     - Unable To Connect To DC/GC And Check For The Temp Object..."
                     Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17000 -EntryType Error -message "FAILURE to connect to DC - $dc in site - $site" -category "17000"
                 }
-            }
+            } #end foreach DC
             If ($replicated) {
                 $continue = $false
             }
@@ -148,9 +188,9 @@ function Test-SysvolReplication {
                 $continue = $false
                 #gather event history to see which DC did, and which did not, get the replication
                 $list = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17002") -OR ($_.InstanceID -Match "17003") -OR ($_.InstanceID -Match "17006")}
-                $RelevantEvents = $list |Select InstanceID,Message |Out-String
+                $RelevantEvents = $list | Select-Object InstanceID,Message | Out-String
 
-                Write-Verbose "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
+                Write-Verbose -Message "Cycle has run $i times, and replication hasn't finished.  Need to generate an alert."
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17004 -EntryType Warning -message "INCOMPLETE SYSVOL Test cycle has run $i times without the object succesfully replicating to all DCs" -category "17004"
                 $Alert = "In $domainname - the SYSVOL test cycle has run $i times without the object succesfully replicating to all DCs.
                 Please see the following support article $SupportArticle to help investigate
@@ -160,6 +200,7 @@ function Test-SysvolReplication {
                 "
                 $CurrentFailure = $true
                 Send-Mail $Alert
+                Write-Verbose -Message "Sent notification about SYSVOL Replication Test"
                 #Write-Verbose "Sending Slack Alert"
                 #New-SlackPost "Alert - Incomplete SYSVOL Replication Cycle in the domain: $domainname"
             }
@@ -175,24 +216,24 @@ function Test-SysvolReplication {
         $output = $output + "`n  Duration........: $duration Seconds"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17005 -EntryType Information -message "END of SYSVOL Test cycle - $output" -category "17005"
 
-        Write-Verbose "`n  Start Time......: $(Get-Date $startDateTime -format "yyyy-MM-dd HH:mm:ss")"
-        Write-Verbose "  End Time........: $(Get-Date $endDateTime -format "yyyy-MM-dd HH:mm:ss")"
-        Write-Verbose "  Duration........: $duration Seconds"
+        Write-Verbose -Message "`n  Start Time......: $(Get-Date $startDateTime -format "yyyy-MM-dd HH:mm:ss")"
+        Write-Verbose -Message "  End Time........: $(Get-Date $endDateTime -format "yyyy-MM-dd HH:mm:ss")"
+        Write-Verbose -Message "  Duration........: $duration Seconds"
 
         # Delete The Temp Object On The RWDC
-        Write-Verbose "  Deleting Temp Text File..."
+        Write-Verbose -Message "  Deleting Temp Text File..."
         Remove-Item "$TempObjectLocation\$tempObjectName" -Force
-        Write-Verbose "  Temp Text File [$tempObjectName] Has Been Deleted On The Source System"
+        Write-Verbose -Message "  Temp Text File [$tempObjectName] Has Been Deleted On The Source System"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17007 -EntryType Information -message "DELETED SYSVOL Test object - $tempObjectName  - has been deleted." -category "17007"
 
-        If (!$CurrentFailure){
-            Write-Verbose "No Issues found in this run"
+        If (-not $CurrentFailure){
+            Write-Verbose -Message "No Issues found in this run"
             $InError = Get-EventLog application -After (Get-Date).AddHours(-2) | where {($_.InstanceID -Match "17000") -or ($_.InstanceID -Match "17004")}
             If ($InError) {
-                Write-Verbose "Previous Errors Seen"
+                Write-Verbose -Message "Previous Errors Seen"
                 #Previous run had an alert
                 #No errors foun during this test so send email that the previous error(s) have cleared
-                Send-AlertCleared
+                Send-AlertCleared -InError $InError
                 #Write-Verbose "Sending Slack Message - Alert Cleared"
                 #New-SlackPost "The previous alert, for AD SYSVOL Replication, has cleared."
                 #Write-Output $InError

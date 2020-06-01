@@ -13,7 +13,15 @@ function Test-ADInternalTimeSync {
 
     .EXAMPLE
     Run in verbose mode if you want on-screen feedback for testing
-   
+
+    .EXAMPLE
+    PS C:\> $trigger = New-JobTrigger -Once -At 6:00AM -RepetitionInterval (New-TimeSpan -Hours 24) -RepeatIndefinitely
+    PS C:\> $cred = Get-Credential DOMAIN\ServiceAccount
+    PS C:\> $opt = New-ScheduledJobOption -RunElevated -RequireNetwork
+    PS C:\> Register-ScheduledJob -Name Test-ADInternalTimeSync -Trigger $trigger -Credential $cred -ScriptBlock {(Import-Module -Name PSADHealth); Test-ADInternalTimeSync} -MaxResultCount 5 -ScheduledJobOption $opt
+
+    Creates a scheduled task to run Test-ADInternalTimeSync on a daily basis. NOTE: Service account needs to be a Domain Admin or equivalent (Tier0) and must have the RunAsBatch and RunAsService privilege
+
     .NOTES
     Authors: Mike Kanakos, Greg Onstot
     Version: 0.8.2
@@ -28,21 +36,33 @@ function Test-ADInternalTimeSync {
     17033 - End of test
     17034 - Alert Email Sent
     17035 - Automated Repair Attempted
+
+    Updated: 05/29/2020
+        Silenced the import of ActiveDirectory module because we don't really want to see that
+        Added "Silently loaded ActiveDirectory module" statement in its place
+        Primarily adding -Message for good code hygiene and expanding any aliases
+        Added a few extra Verbose statements
+        Disabled the Slack Notification since that isn't enabled in any of the other functions
+        Send-AlertCleared was not passing the $InError variable (I think this is a Script to Function issue). Corrected
     #>
 
     Begin {
-        Import-Module activedirectory
+        Import-Module ActiveDirectory -Verbose:$false
+        Write-Verbose -Message "Silently loaded ActiveDirectory module"
         $CurrentFailure = $null
         $null = Get-ADConfig
         $SupportArticle = $Configuration.SupportArticle
         $SlackToken = $Configuration.SlackToken
-        if (!([System.Diagnostics.EventLog]::SourceExists("PSMonitor"))) {
-            write-verbose "Adding Event Source."
+        if (-not ([System.Diagnostics.EventLog]::SourceExists("PSMonitor"))) {
+            write-verbose -Message "Adding Event Source."
             New-EventLog -LogName Application -Source "PSMonitor"
         }#end if
         $DClist = (Get-ADDomainController -Filter *).name  # For ALL DCs
+        Write-Verbose -Message "DCList: $DCList"
         $PDCEmulator = (Get-ADDomainController -Discover -Service PrimaryDC).name
+        Write-Verbose -Message "PDC Emulator: $PDCEmulator"
         $MaxTimeDrift = $Configuration.MaxIntTimeDrift
+        Write-Verbose -Message "Maximum Time Drift: $MaxTimeDrift"
 
         $beginEventLog = @{
             LogName   = "Application"
@@ -62,13 +82,13 @@ function Test-ADInternalTimeSync {
         Foreach ($server in $DClist) {
             
             Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17032 -EntryType Information -message "CHECKING Internal Time Sync on Server - $server" -category "17032"
-            Write-Verbose "CHECKING - $server"
+            Write-Verbose -Message "CHECKING - $server"
             
             $OutputDetails = $null
             $Remotetime = ([WMI]'').ConvertToDateTime((Get-WmiObject -Class win32_operatingsystem -ComputerName $server).LocalDateTime)
             $Referencetime = ([WMI]'').ConvertToDateTime((Get-WmiObject -Class win32_operatingsystem -ComputerName $PDCEmulator).LocalDateTime)
             $result = (New-TimeSpan -Start $Referencetime -End $Remotetime).Seconds
-            Write-Verbose "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime"
+            Write-Verbose -Message "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime"
             
             #If result is a negative number (ie -6 seconds) convert to positive number
             # for easy comparison
@@ -81,28 +101,31 @@ function Test-ADInternalTimeSync {
             #test if result is greater than max time drift
             If ($result -gt $MaxTimeDrift) {
                 $emailOutput = "$server - Offset:  $result - Time:$Remotetime  - ReferenceTime: $Referencetime `r`n "
-                Write-Verbose "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
+                Write-Verbose -Message "ALERT - Time drift above maximum allowed threshold on - $server - $emailOutput"
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17030 -EntryType Warning -message "FAILURE Internal time drift above maximum allowed on $emailOutput `r`n " -category "17030"
                     
                 #attempt to automatically fix the issue
                 Invoke-Command -ComputerName $server -ScriptBlock { 'w32tm /resync' }
                 Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17035 -EntryType Information -message "REPAIR Internal Time Sync remediation was attempted `r`n " -category "17035"
-                CurrentFailure = $true
+                $CurrentFailure = $true
                 Send-Mail $emailOutput
-                Write-Verbose "Sending Slack Alert"
-                New-SlackPost "Alert - Internal Time drift above max threashold - $emailOutput"
+                Write-Verbose -Message "Sent email notification for Internal Time Sync Discrepancy"
+                #Write-Verbose -Message "Sending Slack Alert"
+                #New-SlackPost "Alert - Internal Time drift above max threashold - $emailOutput"
             }#end if
-            If (!$CurrentFailure) {
+            If (-not $CurrentFailure) {
                 Write-Verbose "No Issues found in this run"
-                $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | where {($_.InstanceID -Match "17030")} 
-                $errtext = $InError |out-string
+                $InError = Get-EventLog application -After (Get-Date).AddHours(-24) | Where-Object {($_.InstanceID -Match "17030")} 
+                $errtext = $InError | Out-String
+                Write-Verbose -Message "$errtext"
                 If ($errtext -like "*$server*") {
-                    Write-Verbose "Previous Errors Seen"
+                    Write-Verbose -Message "Previous Errors Seen"
                     #Previous run had an alert
                     #No errors foun during this test so send email that the previous error(s) have cleared
-                    Send-AlertCleared
-                    Write-Verbose "Sending Slack Message - Alert Cleared"
-                    New-SlackPost "The previous alert, for AD Internal Time Sync, has cleared."
+                    Send-AlertCleared -InError $InError
+                    Write-Verbose -Message "Sent Alert Cleared notification for Internal Time Sync Discrepancy recovery"
+                    #Write-Verbose -Message "Sending Slack Message - Alert Cleared"
+                    #New-SlackPost "The previous alert, for AD Internal Time Sync, has cleared."
                     #Write-Output $InError
                 }#End if
 
@@ -113,6 +136,7 @@ function Test-ADInternalTimeSync {
     }#End Process
     
     End {
+        Write-Verbose -Message "Finished processing all Domain Controllers for Internal Time Sync"
         Write-eventlog -logname "Application" -Source "PSMonitor" -EventID 17033 -EntryType Information -message "END of Internal Time Sync Test Cycle ." -category "17033"
     }#End End
 
